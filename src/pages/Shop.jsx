@@ -5,7 +5,7 @@ import ShopList from "../components/ShopList";
 import Banner from "../components/Banner/Banner";
 import useWindowScrollToTop from "../hooks/useWindowScrollToTop";
 import FilterSelect from "../components/FilterSelect";
-import SearchBar from "../components/SeachBar/SearchBar";
+import SearchBar from "../../SeachBar/SearchBar";
 
 const Shop = () => {
   const { products, loading } = useSanityProducts();

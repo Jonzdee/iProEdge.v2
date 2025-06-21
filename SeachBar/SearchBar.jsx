@@ -1,6 +1,6 @@
 import { useState } from "react";
 import "./searchbar.css";
-import { products } from "../../utils/products";
+import { products } from "../src/utils/products";
 // import useDebounce from "../../hooks/useDebounce";
 const SearchBar = ({ setFilterList }) => {
   const [searchWord, setSearchWord] = useState(null);
