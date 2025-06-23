@@ -1,37 +1,53 @@
 .wrapper {
   text-align: center;
   background-color: white;
+  padding: 40px 0;
 }
 
 .icon {
-  width: 40px;
-  height: 40px;
+  width: 60px;
+  height: 60px;
   display: flex;
   justify-content: center;
   align-items: center;
   border-radius: 50%;
-  font-size: 25px;
+  font-size: 30px;
   background: #f3f5f9;
   margin: 20px auto;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+}
+
+.icon ion-icon {
+  color: #6c757d;
 }
 
 .wrapper .row {
   justify-content: center;
+  gap: 20px;
 }
 
 .wrapper .feature {
-  padding: 10px;
-  border: 4px solid white;
+  padding: 20px;
+  background-color: white;
+  border-radius: 10px;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.wrapper .feature:hover {
+  transform: translateY(-10px);
+  box-shadow: 0 10px 15px rgba(0, 0, 0, 0.2);
 }
 
 .wrapper .feature h3 {
   font-size: 18px;
   font-weight: 500;
-  width: fit-content;
-  margin: 0 auto !important;
+  margin: 10px 0;
 }
 
 .wrapper p {
   font-size: 15px;
-  margin-top: 20px;
+  margin-top: 10px;
+  color: #6c757d;
 }

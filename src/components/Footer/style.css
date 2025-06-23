@@ -1,50 +1,61 @@
 footer {
-  background-color: #0f3460;
+  background: linear-gradient(135deg, #0f3460, #1c92d2); /* Gradient with tech vibe */
   padding: 80px 0;
   color: #fff;
-}
-
-footer .box {
-  padding: 0 20px;
-}
-
-footer h1 {
-  margin: 0;
-  font-size: 25px;
-  font-weight: 800;
-  width: max-content;
+  text-align: center;
 }
 
 footer .logo {
   color: white;
-  display:flex;
-  align-items:center;
-  gap:5px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
   margin-bottom: 20px;
+  font-size: 22px;
 }
+
 footer h2 {
   font-size: 20px;
+  margin-bottom: 15px;
+  font-weight: 600;
+  text-transform: uppercase;
 }
 
-footer .row {
-  justify-content: center;
-}
-
-footer p {
-  font-size: 16px;
-  margin-bottom: 20px;
-  opacity: 0.5;
-}
-
-footer h2 {
-  margin-bottom: 20px;
+footer p, footer li {
+  font-size: 14px;
+  opacity: 0.8;
 }
 
 footer ul {
+  list-style: none;
   padding: 0;
+  margin: 0;
 }
 
 footer li {
   margin-bottom: 10px;
-  opacity: 0.5;
+  cursor: pointer;
+  transition: color 0.3s;
+}
+
+footer li:hover {
+  color: #1c92d2; /* Highlight effect */
+}
+
+footer .social-icons {
+  margin-top: 20px;
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+}
+
+footer .social-icons a {
+  font-size: 18px;
+  color: white;
+  transition: transform 0.3s ease;
+}
+
+footer .social-icons a:hover {
+  transform: scale(1.2);
+  color: #1c92d2;
 }
