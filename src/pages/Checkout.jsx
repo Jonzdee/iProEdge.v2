@@ -9,7 +9,7 @@ import {
   Modal,
   Alert,
 } from "react-bootstrap";
-import { useSelector } from "react-redux";
+import { useSelector, useDispatch } from "react-redux";
 import {
   FaCheckCircle,
   FaTruck,
@@ -17,7 +17,7 @@ import {
   FaChevronRight,
 } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
-
+import { clearCart } from "../app/features/cart/cartSlice";
 // Pickup Stations with their fees
 const PICKUP_STATIONS = [
   { name: "Ikoro Garage", fee: 600 },
@@ -47,7 +47,7 @@ const Checkout = () => {
   const [showAddressModal, setShowAddressModal] = useState(false);
   const [addressForm, setAddressForm] = useState(user);
   const [addressChanged, setAddressChanged] = useState(false);
-
+  const dispatch = useDispatch();
   // Cart
   const { cartList } = useSelector((state) => state.cart);
   const totalPrice = cartList.reduce(
@@ -128,9 +128,19 @@ const Checkout = () => {
   // Order confirmation
   const handleConfirmOrder = () => {
     setOrderConfirmed(true);
+    dispatch(clearCart());
     setTimeout(() => {
-      navigate("/checkout/success");
-    }, 1200);
+      navigate("/checkout/success", {
+        state: {
+          paymentMethod,
+          orderTotal: (
+            totalPrice +
+            currentDeliveryFee -
+            promo
+          ).toLocaleString(),
+        },
+      });
+    }, 700); // or your desired delay
   };
 
   // Delivery fee
@@ -602,21 +612,7 @@ const Checkout = () => {
                   variant="success"
                   disabled={!canConfirmOrder}
                   style={{ marginTop: 10 }}
-                  onClick={() => {
-                    setOrderConfirmed(true);
-                    setTimeout(() => {
-                      navigate("/checkout/success", {
-                        state: {
-                          paymentMethod,
-                          orderTotal: (
-                            totalPrice +
-                            currentDeliveryFee -
-                            promo
-                          ).toLocaleString(),
-                        },
-                      });
-                    }, 700); // or your desired delay
-                  }}
+                  onClick={handleConfirmOrder} 
                 >
                   {orderConfirmed ? "Processing..." : "Confirm order"}
                 </Button>
