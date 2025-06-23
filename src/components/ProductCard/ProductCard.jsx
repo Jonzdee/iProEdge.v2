@@ -17,7 +17,6 @@ const ProductCard = ({ title, productItem }) => {
   const router = useNavigate();
 
   const handleClick = () => {
-    // Use Sanity id for navigation
     router(`/shop/${productItem.id}`);
   };
 
@@ -63,12 +62,12 @@ const ProductCard = ({ title, productItem }) => {
         <div className="price">
           <h4>₦{productItem.price}</h4>
           <button
-            aria-label="Add"
+            aria-label="Add to Cart"
             type="submit"
             className="add"
             onClick={handleAdd}
           >
-            <ion-icon name="add"></ion-icon>
+            Add to Cart
           </button>
         </div>
       </div>
