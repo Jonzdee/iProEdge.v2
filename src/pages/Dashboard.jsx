@@ -3,7 +3,7 @@ import { useAuth } from "../context/AuthContext";
 import { db } from "../firebase";
 import Loader from "../components/Loader";
 import { collection, query, where, orderBy, getDocs, doc, updateDoc } from "firebase/firestore";
-import { Container, Row, Col, Card, Badge, ListGroup, Alert, Button, ProgressBar, Modal } from "react-bootstrap";
+import { Container, Row, Col, Card, Badge, ListGroup, Alert, Button, Modal } from "react-bootstrap";
 import { FaCheckCircle, FaMoneyBillWave, FaCreditCard, FaRegClock, FaTruck, FaHome, FaFilePdf, FaTimesCircle, FaUndo, FaHeadset } from "react-icons/fa";
 import jsPDF from "jspdf";
 
@@ -25,33 +25,76 @@ const Dashboard = () => {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [modal, setModal] = useState({ show: false, type: "", orderId: null });
+  const [actionLoading, setActionLoading] = useState(false);
+  const [feedback, setFeedback] = useState({ show: false, variant: "", message: "" });
 
   useEffect(() => {
     if (!user) return;
 
     const fetchOrders = async () => {
-      const q = query(
-        collection(db, "orders"),
-        where("userId", "==", user.uid),
-        orderBy("timestamp", "desc")
-      );
-      const querySnapshot = await getDocs(q);
-      setOrders(querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+      setLoading(true);
+      try {
+        const q = query(
+          collection(db, "orders"),
+          where("userId", "==", user.uid),
+          orderBy("timestamp", "desc")
+        );
+        const querySnapshot = await getDocs(q);
+        setOrders(querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+      } catch (err) {
+        setFeedback({ show: true, variant: "danger", message: "Failed to load orders: " + err.message });
+        console.error("Order fetch error:", err);
+      }
       setLoading(false);
     };
 
     fetchOrders();
   }, [user, modal]); // refetch after action
 
+  useEffect(() => {
+    console.log("Modal state changed:", modal);
+  }, [modal]);
+
+  useEffect(() => {
+    console.log("Orders loaded:", orders.map(o => ({ id: o.id, status: o.status })));
+  }, [orders]);
+
   const handleAction = async (orderId, type) => {
-    setModal({ show: false, type: "", orderId: null });
-    if (!orderId) return;
+    console.log("handleAction called", orderId, type);
+    setActionLoading(true);
+    setFeedback({ show: false, variant: "", message: "" });
+    if (!orderId) {
+      setModal({ show: false, type: "", orderId: null });
+      setActionLoading(false);
+      alert("No orderId provided!");
+      return;
+    }
     const orderRef = doc(db, "orders", orderId);
     let statusUpdate = {};
     if (type === "cancel") statusUpdate = { status: "cancelRequested" };
     if (type === "return") statusUpdate = { status: "returnRequested" };
-    await updateDoc(orderRef, statusUpdate);
-    // Optionally, send a notification or email here!
+    console.log("Attempting Firestore update", orderRef, statusUpdate);
+    try {
+      await updateDoc(orderRef, statusUpdate);
+      setFeedback({
+        show: true,
+        variant: "success",
+        message:
+          type === "cancel"
+            ? "Cancel request submitted successfully."
+            : "Return request submitted successfully.",
+      });
+      console.log("Firestore update success for", orderId);
+    } catch (err) {
+      setFeedback({
+        show: true,
+        variant: "danger",
+        message: "Error updating order: " + err.message,
+      });
+      console.error("Firestore update error:", err);
+    }
+    setModal({ show: false, type: "", orderId: null });
+    setActionLoading(false);
   };
 
   const handleDownloadInvoice = (order) => {
@@ -64,11 +107,15 @@ const Dashboard = () => {
     docPdf.text(`Order Total: ${order.orderTotal}`, 14, 44);
     docPdf.text(`Payment Method: ${order.paymentMethod}`, 14, 52);
     docPdf.text(`Status: ${order.status}`, 14, 60);
-    docPdf.text(`Order Date: ${
-      order.timestamp && order.timestamp.seconds
-        ? new Date(order.timestamp.seconds * 1000).toLocaleString()
-        : ""
-    }`, 14, 68);
+    docPdf.text(
+      `Order Date: ${
+        order.timestamp && order.timestamp.seconds
+          ? new Date(order.timestamp.seconds * 1000).toLocaleString()
+          : ""
+      }`,
+      14,
+      68
+    );
     docPdf.text("Items:", 14, 76);
     let y = 84;
     if (order.items && order.items.length > 0) {
@@ -105,6 +152,11 @@ const Dashboard = () => {
           <div className="mb-3" style={{ color: "#888" }}>
             Here are your recent orders:
           </div>
+          {feedback.show && (
+            <Alert variant={feedback.variant} onClose={() => setFeedback({ show: false })} dismissible>
+              {feedback.message}
+            </Alert>
+          )}
         </Col>
       </Row>
 
@@ -118,26 +170,22 @@ const Dashboard = () => {
             <ListGroup>
               {orders.map((order) => {
                 const statusIdx = getStatusIndex(order.status) >= 0 ? getStatusIndex(order.status) : 0;
-                // Only allow cancel if processing; allow return if delivered
-                const allowCancel =
-                  order.status === "processing";
-                const allowReturn =
-                  order.status === "delivered";
+                const allowCancel = order.status === "processing";
+                const allowReturn = order.status === "delivered";
                 return (
-                  <Card
-                    key={order.id}
-                    className="mb-4 shadow-sm"
-                    style={{ borderRadius: 14 }}
-                  >
+                  <Card key={order.id} className="mb-4 shadow-sm" style={{ borderRadius: 14 }}>
                     <Card.Body>
                       <Row>
                         <Col xs={2} md={1} className="d-flex align-items-center justify-content-center">
                           {ORDER_STATUSES[statusIdx]?.icon}
                         </Col>
                         <Col xs={10} md={11}>
+                          <div style={{ fontSize: 10, color: "#888" }}>
+                            {/* Debug: Show order status */}
+                            <strong>Order status:</strong> {order.status}
+                          </div>
                           <Card.Title style={{ fontSize: "1.15rem", fontWeight: 600 }}>
-                            Order Total: <span style={{ color: "#06a" }}>{order.orderTotal}</span>
-                            {" "}
+                            Order Total: <span style={{ color: "#06a" }}>{order.orderTotal}</span>{" "}
                             <Badge
                               pill
                               bg={
@@ -154,12 +202,8 @@ const Dashboard = () => {
                                   <FaMoneyBillWave /> Cash on Delivery
                                 </>
                               )}
-                              {order.paymentMethod === "palmpay" && (
-                                <>Palmpay</>
-                              )}
-                              {order.paymentMethod === "paystack" && (
-                                <>Paystack</>
-                              )}
+                              {order.paymentMethod === "palmpay" && <>Palmpay</>}
+                              {order.paymentMethod === "paystack" && <>Paystack</>}
                               {order.paymentMethod === "debitcard" && (
                                 <>
                                   <FaCreditCard /> Debit Card
@@ -167,8 +211,6 @@ const Dashboard = () => {
                               )}
                             </Badge>
                           </Card.Title>
-
-                          {/* Status Timeline */}
                           <div className="mb-2">
                             <div style={{ display: "flex", alignItems: "center" }}>
                               {ORDER_STATUSES.slice(0, 4).map((s, idx) => (
@@ -182,17 +224,14 @@ const Dashboard = () => {
                                     fontSize: 13,
                                   }}
                                 >
-                                  <div>
-                                    {s.icon}
-                                  </div>
+                                  <div>{s.icon}</div>
                                   <div>{s.label}</div>
                                   {idx < 3 && (
                                     <div
                                       style={{
                                         width: "100%",
                                         height: 2,
-                                        background:
-                                          statusIdx > idx ? "#06a" : "#eee",
+                                        background: statusIdx > idx ? "#06a" : "#eee",
                                         margin: "4px 0 0 0",
                                       }}
                                     />
@@ -204,23 +243,25 @@ const Dashboard = () => {
 
                           <div style={{ color: "#222", marginBottom: 6, fontSize: "1rem" }}>
                             <strong>Status:</strong>{" "}
-                            <span style={{
-                              color:
-                                order.status === "delivered"
-                                  ? "green"
-                                  : order.status === "processing"
-                                  ? "#007bff"
-                                  : order.status === "shipped"
-                                  ? "#ff9800"
-                                  : order.status === "outForDelivery"
-                                  ? "#ffc107"
-                                  : order.status === "cancelRequested"
-                                  ? "red"
-                                  : order.status === "returnRequested"
-                                  ? "#ff9800"
-                                  : "#888"
-                            }}>
-                              {ORDER_STATUSES.find(st => st.key === order.status)?.label || order.status}
+                            <span
+                              style={{
+                                color:
+                                  order.status === "delivered"
+                                    ? "green"
+                                    : order.status === "processing"
+                                    ? "#007bff"
+                                    : order.status === "shipped"
+                                    ? "#ff9800"
+                                    : order.status === "outForDelivery"
+                                    ? "#ffc107"
+                                    : order.status === "cancelRequested"
+                                    ? "red"
+                                    : order.status === "returnRequested"
+                                    ? "#ff9800"
+                                    : "#888",
+                              }}
+                            >
+                              {ORDER_STATUSES.find((st) => st.key === order.status)?.label || order.status}
                             </span>
                           </div>
                           <div style={{ fontSize: "0.98rem", color: "#444" }}>
@@ -260,16 +301,32 @@ const Dashboard = () => {
                             <Button
                               size="sm"
                               variant="outline-danger"
-                              disabled={!allowCancel}
-                              onClick={() => setModal({ show: true, type: "cancel", orderId: order.id })}
+                              disabled={!allowCancel || actionLoading}
+                              onClick={() => {
+                                if (!allowCancel) {
+                                  alert("Cancel not allowed for this status: " + order.status);
+                                  console.log("Cancel NOT allowed for", order.id, order.status);
+                                } else {
+                                  console.log("Cancel button clicked", order.id);
+                                  setModal({ show: true, type: "cancel", orderId: order.id });
+                                }
+                              }}
                             >
                               <FaTimesCircle className="mb-1" /> Cancel Order
                             </Button>
                             <Button
                               size="sm"
                               variant="outline-warning"
-                              disabled={!allowReturn}
-                              onClick={() => setModal({ show: true, type: "return", orderId: order.id })}
+                              disabled={!allowReturn || actionLoading}
+                              onClick={() => {
+                                if (!allowReturn) {
+                                  alert("Return not allowed for this status: " + order.status);
+                                  console.log("Return NOT allowed for", order.id, order.status);
+                                } else {
+                                  console.log("Return button clicked", order.id);
+                                  setModal({ show: true, type: "return", orderId: order.id });
+                                }
+                              }}
                             >
                               <FaUndo className="mb-1" /> Request Return
                             </Button>
@@ -302,8 +359,10 @@ const Dashboard = () => {
           )}
         </Col>
       </Row>
-      {/* Modal for Cancel/Return */}
-      <Modal show={modal.show} onHide={() => setModal({ show: false, type: "", orderId: null })} centered>
+      <Modal show={modal.show} onHide={() => {
+        console.log("Modal closed");
+        setModal({ show: false, type: "", orderId: null });
+      }} centered>
         <Modal.Header closeButton>
           <Modal.Title>
             {modal.type === "cancel" ? "Cancel Order" : "Request Return"}
@@ -315,14 +374,21 @@ const Dashboard = () => {
             : "Are you sure you want to request a return for this order?"}
         </Modal.Body>
         <Modal.Footer>
-          <Button variant="secondary" onClick={() => setModal({ show: false, type: "", orderId: null })}>
+          <Button variant="secondary" onClick={() => {
+            console.log("Modal close button clicked");
+            setModal({ show: false, type: "", orderId: null });
+          }}>
             Close
           </Button>
           <Button
             variant={modal.type === "cancel" ? "danger" : "warning"}
-            onClick={() => handleAction(modal.orderId, modal.type)}
+            onClick={() => {
+              console.log("Confirm clicked", modal.orderId, modal.type);
+              handleAction(modal.orderId, modal.type);
+            }}
+            disabled={actionLoading}
           >
-            Confirm
+            {actionLoading ? "Processing..." : "Confirm"}
           </Button>
         </Modal.Footer>
       </Modal>
