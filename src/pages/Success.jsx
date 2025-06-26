@@ -2,16 +2,21 @@ import React, { useState, useEffect } from "react";
 import { Container, Row, Col, Card, Button, Modal, Form, Alert } from "react-bootstrap";
 import { useLocation, useNavigate } from "react-router-dom";
 import { FaCheckCircle, FaPhoneAlt, FaCreditCard, FaMoneyBillWave } from "react-icons/fa";
+import { useAuth } from "../context/AuthContext";
+import { db } from "../firebase";
+import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 
 export default function Success() {
   const location = useLocation();
   const navigate = useNavigate();
+  const { user } = useAuth();
 
   // Simulated details (replace with real state/props)
   const paymentMethod = location.state?.paymentMethod || "cod"; // default to cash on delivery
   const orderTotal = location.state?.orderTotal || "₦12,500";
+  const cartItems = location.state?.cartItems || []; // recommended to pass cart items from checkout
   const customer = {
-    name: "Johnson Olayemi",
+    name: user?.displayName || "Johnson Olayemi",
     phone: "08063856166",
     palmpay: "08063856166 ogunyankin johnson olayemi",
   };
@@ -21,6 +26,34 @@ export default function Success() {
   // For Debit Card modal
   const [showCard, setShowCard] = useState(false);
   const [cardSuccess, setCardSuccess] = useState(false);
+
+  // Save order to Firestore on mount (only once)
+  useEffect(() => {
+    // Only save order if user exists and we haven't already saved (avoid duplicates)
+    let saved = false;
+    if (user && !saved) {
+      const saveOrder = async () => {
+        try {
+          await addDoc(collection(db, "orders"), {
+            userId: user.uid,
+            userName: user.displayName || user.email,
+            orderTotal: orderTotal,
+            paymentMethod: paymentMethod,
+            items: cartItems,
+            timestamp: serverTimestamp(),
+            status: "success",
+            // add more order details as needed
+          });
+          saved = true;
+        } catch (err) {
+          // Optionally show error to user
+          console.error("Error saving order:", err);
+        }
+      };
+      saveOrder();
+    }
+    // eslint-disable-next-line
+  }, [user, orderTotal, paymentMethod, cartItems]);
 
   // Show modal if paystack/card is picked
   useEffect(() => {
@@ -32,7 +65,7 @@ export default function Success() {
   const handlePaystackPay = () => {
     setShowPaystack(false);
     setTimeout(() => {
-      Alert("Payment Successful!");
+      alert("Payment Successful!");
     }, 700);
   };
 
