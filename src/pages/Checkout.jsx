@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
+import { v4 as uuidv4 } from "uuid";
 import {
   Container,
   Row,
@@ -18,7 +19,8 @@ import {
 } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 import { clearCart } from "../app/features/cart/cartSlice";
-// Pickup Stations with their fees
+import { useAuth } from "../context/AuthContext"; // <-- Make sure this exists and provides user
+
 const PICKUP_STATIONS = [
   { name: "Ikoro Garage", fee: 600 },
   { name: "First Gate LasusTech", fee: 100 },
@@ -27,7 +29,6 @@ const PICKUP_STATIONS = [
   { name: "Ogijo", fee: 600 },
 ];
 
-// Payment Methods
 const PAYMENT_METHODS = [
   { value: "cod", label: "Cash on Delivery" },
   { value: "palmpay", label: "Palmpay" },
@@ -36,42 +37,41 @@ const PAYMENT_METHODS = [
 ];
 
 const initialUser = {
-  name: "Johnson Olayemi",
-  address: "Odogunyan, Ikorodu Lagos | Lagos - IKORODU (LasposTech)",
-  phone: "+234 8063856166",
+  name: "",
+  address: "",
+  phone: "",
 };
 
 const Checkout = () => {
-  // User Info
-  const [user, setUser] = useState(initialUser);
+  const { user } = useAuth(); // <-- Auth context for current user
+  const [userInfo, setUserInfo] = useState(initialUser);
   const [showAddressModal, setShowAddressModal] = useState(false);
-  const [addressForm, setAddressForm] = useState(user);
+  const [addressForm, setAddressForm] = useState(userInfo);
   const [addressChanged, setAddressChanged] = useState(false);
   const dispatch = useDispatch();
-  // Cart
   const { cartList } = useSelector((state) => state.cart);
-  const totalPrice = cartList.reduce(
-    (price, item) => price + item.qty * item.price,
-    0
-  );
-  const defaultDeliveryFee = 1000; // Door delivery fee
+  const totalPrice = cartList.reduce((price, item) => price + item.qty * item.price, 0);
+  const defaultDeliveryFee = 1000;
   const promo = 299;
 
-  // Step management
-  const [step, setStep] = useState(1); // 1: Address, 2: Delivery, 3: Payment
-  const [deliveryType, setDeliveryType] = useState(""); // "door" | "pickup"
+  const [step, setStep] = useState(1);
+  const [deliveryType, setDeliveryType] = useState("");
   const [pickupStation, setPickupStation] = useState("");
   const [pickupFee, setPickupFee] = useState(0);
   const [deliveryChanged, setDeliveryChanged] = useState(false);
-
   const [paymentMethod, setPaymentMethod] = useState("");
   const [orderConfirmed, setOrderConfirmed] = useState(false);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
-  const [pendingChange, setPendingChange] = useState(null); // 'address' or 'delivery'
+  const [pendingChange, setPendingChange] = useState(null);
+
+  // Order POST states
+  const [orderLoading, setOrderLoading] = useState(false);
+  const [orderError, setOrderError] = useState("");
+  const hasPostedOrder = useRef(false);
 
   const navigate = useNavigate();
 
-  // Address handlers
+  // Modal handlers...
   const handleAddressChange = (e) => {
     const { name, value } = e.target;
     setAddressForm((prev) => ({ ...prev, [name]: value }));
@@ -83,13 +83,11 @@ const Checkout = () => {
     setPendingChange("address");
   };
   const confirmAddressChange = () => {
-    setUser(addressForm);
+    setUserInfo(addressForm);
     setShowConfirmModal(false);
     setAddressChanged(false);
     setPendingChange(null);
   };
-
-  // Delivery handlers
   const handleDeliveryType = (type) => {
     if (type !== deliveryType) {
       setDeliveryChanged(true);
@@ -101,59 +99,18 @@ const Checkout = () => {
     }
   };
   const handlePickupStation = (e) => {
-    const selected = PICKUP_STATIONS.find(
-      (station) => station.name === e.target.value
-    );
+    const selected = PICKUP_STATIONS.find((station) => station.name === e.target.value);
     setPickupStation(selected ? selected.name : "");
     setPickupFee(selected ? selected.fee : 0);
     setDeliveryChanged(true);
     setShowConfirmModal(true);
     setPendingChange("delivery");
   };
-
   const confirmDeliveryChange = () => {
     setShowConfirmModal(false);
     setDeliveryChanged(false);
     setPendingChange(null);
   };
-
-  // Step navigation
-  const canConfirmAddress = !addressChanged && step === 1;
-  const canConfirmDelivery =
-    !deliveryChanged &&
-    step === 2 &&
-    (deliveryType === "door" || (deliveryType === "pickup" && pickupStation));
-  const canConfirmOrder = step === 3 && paymentMethod;
-
-  // Order confirmation
-  const handleConfirmOrder = () => {
-    setOrderConfirmed(true);
-    dispatch(clearCart());
-    setTimeout(() => {
-      navigate("/checkout/success", {
-        state: {
-          paymentMethod,
-          orderTotal: (
-            totalPrice +
-            currentDeliveryFee -
-            promo
-          ).toLocaleString(),
-        },
-      });
-    }, 700); // or your desired delay
-  };
-
-  // Delivery fee
-  const currentDeliveryFee =
-    deliveryType === "pickup"
-      ? pickupStation
-        ? pickupFee
-        : 0
-      : deliveryType === "door"
-      ? defaultDeliveryFee
-      : 0;
-
-  // Modal Confirmations
   const handleModalConfirm = () => {
     if (pendingChange === "address") {
       confirmAddressChange();
@@ -165,7 +122,7 @@ const Checkout = () => {
     setShowConfirmModal(false);
     setPendingChange(null);
     if (pendingChange === "address") {
-      setAddressForm(user); // reset to previous
+      setAddressForm(userInfo);
       setAddressChanged(false);
     } else if (pendingChange === "delivery") {
       setDeliveryType("");
@@ -174,6 +131,117 @@ const Checkout = () => {
       setDeliveryChanged(false);
     }
   };
+
+  const canConfirmAddress =
+    !addressChanged &&
+    step === 1 &&
+    userInfo.name.trim() &&
+    userInfo.address.trim() &&
+    userInfo.phone.trim();
+  const canConfirmDelivery =
+    !deliveryChanged &&
+    step === 2 &&
+    (deliveryType === "door" || (deliveryType === "pickup" && pickupStation));
+  const canConfirmOrder = step === 3 && paymentMethod;
+  const currentDeliveryFee =
+    deliveryType === "pickup"
+      ? pickupStation
+        ? pickupFee
+        : 0
+      : deliveryType === "door"
+      ? defaultDeliveryFee
+      : 0;
+
+  // Order POST logic (robust, secure, no duplicates)
+ const handleConfirmOrder = async () => {
+  if (orderLoading || hasPostedOrder.current) return; // Prevent double submit
+  setOrderConfirmed(true);
+  setOrderLoading(true);
+  setOrderError("");
+  hasPostedOrder.current = true;
+
+  // Enforce required fields
+  if (deliveryType === "pickup" && !pickupStation) {
+    setOrderError("Please select a pickup station for pickup delivery.");
+    setOrderLoading(false);
+    setOrderConfirmed(false);
+    hasPostedOrder.current = false;
+    return;
+  }
+  if (deliveryType === "door" && !userInfo.address.trim()) {
+    setOrderError("Please enter a delivery address for doorstep delivery.");
+    setOrderLoading(false);
+    setOrderConfirmed(false);
+    hasPostedOrder.current = false;
+    return;
+  }
+
+  try {
+    if (!user || !user.getIdToken) {
+      setOrderError("You must be logged in to place an order.");
+      setOrderLoading(false);
+      setOrderConfirmed(false);
+      hasPostedOrder.current = false;
+      return;
+    }
+    const token = await user.getIdToken();
+    const orderPayload = {
+      userId: user.uid,
+      userName: user.displayName || user.email,
+      userEmail: user.email,
+      items: cartList,
+      orderTotal: totalPrice + currentDeliveryFee - promo,
+      paymentMethod,
+      address: userInfo.address,
+      name: userInfo.name,
+      phone: userInfo.phone,
+      deliveryType,
+      pickupStation,
+      promo,
+      status: "pending",
+      clientOrderId: uuidv4(), 
+    };
+    console.log("Order Payload:", orderPayload); // Debug: Check values
+
+    const response = await fetch("http://localhost:3001/order", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(orderPayload),
+    });
+    const data = await response.json();
+    setOrderLoading(false);
+    if (data.success) {
+      dispatch(clearCart());
+      localStorage.removeItem("cartList");
+      navigate("/checkout/success", {
+        state: {
+          cartItems: cartList,
+          paymentMethod,
+          orderTotal: (totalPrice + currentDeliveryFee - promo).toLocaleString(),
+          address: userInfo.address,
+          name: userInfo.name,
+          phone: userInfo.phone,
+          deliveryType,
+          pickupStation,
+          promo,
+          orderId: data.orderId,
+        },
+      });
+    } else {
+      setOrderError(data.error || "Order failed. Please try again.");
+      setOrderConfirmed(false);
+      hasPostedOrder.current = false;
+    }
+  } catch (err) {
+    setOrderLoading(false);
+    setOrderError(err.message || "Network error. Please try again.");
+    setOrderConfirmed(false);
+    hasPostedOrder.current = false;
+  }
+};
 
   return (
     <section style={{ background: "#f6f9fc", minHeight: "100vh", padding: 0 }}>
@@ -254,9 +322,9 @@ const Checkout = () => {
                     />{" "}
                     1. CUSTOMER ADDRESS
                   </div>
-                  <div>{user.name}</div>
+                  <div>{userInfo.name}</div>
                   <div style={{ color: "#666", fontSize: ".97rem" }}>
-                    {user.address} | {user.phone}
+                    {userInfo.address} | {userInfo.phone}
                   </div>
                 </div>
                 <Button
@@ -272,19 +340,33 @@ const Checkout = () => {
                   <Button
                     onClick={() => setStep(2)}
                     variant="warning"
-                    disabled={addressChanged}
+                    disabled={
+                      addressChanged ||
+                      !userInfo.name.trim() ||
+                      !userInfo.address.trim() ||
+                      !userInfo.phone.trim()
+                    }
                   >
                     Confirm Address & Continue
                   </Button>
                 )}
-                {addressChanged && (
+                {!userInfo.name.trim() ||
+                !userInfo.address.trim() ||
+                !userInfo.phone.trim() ? (
+                  <span
+                    className="text-danger"
+                    style={{ fontSize: 12, marginLeft: 8 }}
+                  >
+                    Please fill in all address fields.
+                  </span>
+                ) : addressChanged ? (
                   <span
                     className="text-danger"
                     style={{ fontSize: 12, marginLeft: 8 }}
                   >
                     Please confirm your address change first.
                   </span>
-                )}
+                ) : null}
               </Card.Footer>
             </Card>
 
@@ -549,6 +631,8 @@ const Checkout = () => {
                 &larr; Go back &amp; continue shopping
               </Button>
             </div>
+            {orderLoading && <Alert className="mt-3" variant="info">Placing order...</Alert>}
+            {orderError && <Alert className="mt-3" variant="danger">{orderError}</Alert>}
           </Col>
 
           {/* Order Summary */}
@@ -610,9 +694,9 @@ const Checkout = () => {
                 <Button
                   className="checkout-btn w-100"
                   variant="success"
-                  disabled={!canConfirmOrder}
+                  disabled={!canConfirmOrder || orderLoading}
                   style={{ marginTop: 10 }}
-                  onClick={handleConfirmOrder} 
+                  onClick={handleConfirmOrder}
                 >
                   {orderConfirmed ? "Processing..." : "Confirm order"}
                 </Button>

@@ -1,23 +1,61 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "../context/AuthContext";
-import { db } from "../firebase";
 import Loader from "../components/Loader";
-import { collection, query, where, orderBy, getDocs, doc, updateDoc } from "firebase/firestore";
-import { Container, Row, Col, Card, Badge, ListGroup, Alert, Button, Modal } from "react-bootstrap";
-import { FaCheckCircle, FaMoneyBillWave, FaCreditCard, FaRegClock, FaTruck, FaHome, FaFilePdf, FaTimesCircle, FaUndo, FaHeadset } from "react-icons/fa";
+import {
+  Container,
+  Row,
+  Col,
+  Card,
+  Badge,
+  ListGroup,
+  Alert,
+  Button,
+  Modal,
+} from "react-bootstrap";
+import {
+  FaCheckCircle,
+  FaMoneyBillWave,
+  FaCreditCard,
+  FaRegClock,
+  FaTruck,
+  FaHome,
+  FaFilePdf,
+  FaTimesCircle,
+  FaUndo,
+  FaHeadset,
+} from "react-icons/fa";
 import jsPDF from "jspdf";
 
-const ORDER_STATUSES = [
+const TIMELINE_STATUSES = [
   { key: "processing", label: "Processing", icon: <FaRegClock color="#888" /> },
   { key: "shipped", label: "Shipped", icon: <FaTruck color="#007bff" /> },
   { key: "outForDelivery", label: "Out for Delivery", icon: <FaHome color="#ffc107" /> },
   { key: "delivered", label: "Delivered", icon: <FaCheckCircle color="green" /> },
-  { key: "cancelRequested", label: "Cancel Requested", icon: <FaTimesCircle color="red" /> },
-  { key: "returnRequested", label: "Return Requested", icon: <FaUndo color="#ff9800" /> },
 ];
 
-function getStatusIndex(status) {
-  return ORDER_STATUSES.findIndex(s => s.key === status);
+const EXTRA_STATUSES = [
+  {
+    key: "cancelRequested",
+    label: "Cancel Requested",
+    icon: <FaTimesCircle color="red" />,
+    badgeBg: "danger",
+  },
+  {
+    key: "returnRequested",
+    label: "Return Requested",
+    icon: <FaUndo color="#ff9800" />,
+    badgeBg: "warning",
+  },
+];
+
+function getTimelineStatusIndex(status) {
+  const keys = TIMELINE_STATUSES.map((s) => s.key);
+  if (keys.includes(status)) return keys.indexOf(status);
+  return keys.length - 1;
+}
+
+function getExtraStatus(status) {
+  return EXTRA_STATUSES.find((s) => s.key === status);
 }
 
 const Dashboard = () => {
@@ -26,41 +64,53 @@ const Dashboard = () => {
   const [loading, setLoading] = useState(true);
   const [modal, setModal] = useState({ show: false, type: "", orderId: null });
   const [actionLoading, setActionLoading] = useState(false);
-  const [feedback, setFeedback] = useState({ show: false, variant: "", message: "" });
+  const [feedback, setFeedback] = useState({
+    show: false,
+    variant: "",
+    message: "",
+  });
 
-  useEffect(() => {
+  // Fetch orders from backend API with authentication
+  const fetchOrders = () => {
     if (!user) return;
+    setLoading(true);
+    user.getIdToken().then((token) => {
+      fetch(
+        `http://localhost:3001/orders?userEmail=${encodeURIComponent(
+          user.email
+        )}`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      )
+        .then((res) => res.json())
+        .then((data) => {
+          setOrders(data.success ? data.orders : []);
+          setLoading(false);
+          if (!data.success) {
+            setFeedback({
+              show: true,
+              variant: "danger",
+              message: data.error || "Failed to load orders.",
+            });
+          }
+        })
+        .catch((error) => {
+          setFeedback({
+            show: true,
+            variant: "danger",
+            message: "Failed to load orders: " + error.message,
+          });
+          setLoading(false);
+        });
+    });
+  };
 
-    const fetchOrders = async () => {
-      setLoading(true);
-      try {
-        const q = query(
-          collection(db, "orders"),
-          where("userId", "==", user.uid),
-          orderBy("timestamp", "desc")
-        );
-        const querySnapshot = await getDocs(q);
-        setOrders(querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
-      } catch (err) {
-        setFeedback({ show: true, variant: "danger", message: "Failed to load orders: " + err.message });
-        console.error("Order fetch error:", err);
-      }
-      setLoading(false);
-    };
-
+  useEffect(() => {
     fetchOrders();
-  }, [user, modal]); // refetch after action
-
-  useEffect(() => {
-    console.log("Modal state changed:", modal);
-  }, [modal]);
-
-  useEffect(() => {
-    console.log("Orders loaded:", orders.map(o => ({ id: o.id, status: o.status })));
-  }, [orders]);
+  }, [user]);
 
   const handleAction = async (orderId, type) => {
-    console.log("handleAction called", orderId, type);
     setActionLoading(true);
     setFeedback({ show: false, variant: "", message: "" });
     if (!orderId) {
@@ -69,29 +119,43 @@ const Dashboard = () => {
       alert("No orderId provided!");
       return;
     }
-    const orderRef = doc(db, "orders", orderId);
     let statusUpdate = {};
     if (type === "cancel") statusUpdate = { status: "cancelRequested" };
     if (type === "return") statusUpdate = { status: "returnRequested" };
-    console.log("Attempting Firestore update", orderRef, statusUpdate);
     try {
-      await updateDoc(orderRef, statusUpdate);
-      setFeedback({
-        show: true,
-        variant: "success",
-        message:
-          type === "cancel"
-            ? "Cancel request submitted successfully."
-            : "Return request submitted successfully.",
+      const token = await user.getIdToken();
+      const res = await fetch(`http://localhost:3001/order/${orderId}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(statusUpdate),
       });
-      console.log("Firestore update success for", orderId);
+      const data = await res.json();
+      if (data.success) {
+        setFeedback({
+          show: true,
+          variant: "success",
+          message:
+            type === "cancel"
+              ? "Cancel request submitted successfully."
+              : "Return request submitted successfully.",
+        });
+        fetchOrders();
+      } else {
+        setFeedback({
+          show: true,
+          variant: "danger",
+          message: data.error || "Error updating order.",
+        });
+      }
     } catch (err) {
       setFeedback({
         show: true,
         variant: "danger",
         message: "Error updating order: " + err.message,
       });
-      console.error("Firestore update error:", err);
     }
     setModal({ show: false, type: "", orderId: null });
     setActionLoading(false);
@@ -109,8 +173,12 @@ const Dashboard = () => {
     docPdf.text(`Status: ${order.status}`, 14, 60);
     docPdf.text(
       `Order Date: ${
-        order.timestamp && order.timestamp.seconds
-          ? new Date(order.timestamp.seconds * 1000).toLocaleString()
+        order.timestamp
+          ? new Date(
+              typeof order.timestamp === "object" && order.timestamp.seconds
+                ? order.timestamp.seconds * 1000
+                : order.timestamp
+            ).toLocaleString()
           : ""
       }`,
       14,
@@ -147,19 +215,24 @@ const Dashboard = () => {
       <Row className="justify-content-center mb-4">
         <Col xs={12} md={10} lg={8}>
           <h2 className="mb-2" style={{ fontWeight: 700 }}>
-            {user.displayName ? `Hi, ${user.displayName.split(" ")[0]}!` : "Your Dashboard"}
+            {user.displayName
+              ? `Hi, ${user.displayName.split(" ")[0]}!`
+              : "Your Dashboard"}
           </h2>
           <div className="mb-3" style={{ color: "#888" }}>
             Here are your recent orders:
           </div>
           {feedback.show && (
-            <Alert variant={feedback.variant} onClose={() => setFeedback({ show: false })} dismissible>
+            <Alert
+              variant={feedback.variant}
+              onClose={() => setFeedback({ show: false })}
+              dismissible
+            >
               {feedback.message}
             </Alert>
           )}
         </Col>
       </Row>
-
       <Row className="justify-content-center">
         <Col xs={12} md={10} lg={8}>
           {orders.length === 0 ? (
@@ -169,23 +242,43 @@ const Dashboard = () => {
           ) : (
             <ListGroup>
               {orders.map((order) => {
-                const statusIdx = getStatusIndex(order.status) >= 0 ? getStatusIndex(order.status) : 0;
+                const timelineIdx = getTimelineStatusIndex(order.status);
+                const extraStatus = getExtraStatus(order.status);
                 const allowCancel = order.status === "processing";
                 const allowReturn = order.status === "delivered";
+
+                // Placed date fix for Firestore and string timestamps
+                let placedDate = "";
+                if (order.timestamp) {
+                  const d =
+                    typeof order.timestamp === "object" &&
+                    order.timestamp.seconds
+                      ? new Date(order.timestamp.seconds * 1000)
+                      : new Date(order.timestamp);
+                  placedDate = isNaN(d.getTime()) ? "" : d.toLocaleString();
+                }
+
                 return (
-                  <Card key={order.id} className="mb-4 shadow-sm" style={{ borderRadius: 14 }}>
+                  <Card
+                    key={order.id}
+                    className="mb-4 shadow-sm"
+                    style={{ borderRadius: 14 }}
+                  >
                     <Card.Body>
                       <Row>
-                        <Col xs={2} md={1} className="d-flex align-items-center justify-content-center">
-                          {ORDER_STATUSES[statusIdx]?.icon}
+                        <Col
+                          xs={2}
+                          md={1}
+                          className="d-flex align-items-center justify-content-center"
+                        >
+                          {TIMELINE_STATUSES[timelineIdx]?.icon}
                         </Col>
                         <Col xs={10} md={11}>
-                          <div style={{ fontSize: 10, color: "#888" }}>
-                            {/* Debug: Show order status */}
-                            <strong>Order status:</strong> {order.status}
-                          </div>
                           <Card.Title style={{ fontSize: "1.15rem", fontWeight: 600 }}>
-                            Order Total: <span style={{ color: "#06a" }}>{order.orderTotal}</span>{" "}
+                            Order Total:{" "}
+                            <span style={{ color: "#06a" }}>
+                              {order.orderTotal?.toLocaleString()}
+                            </span>{" "}
                             <Badge
                               pill
                               bg={
@@ -211,37 +304,61 @@ const Dashboard = () => {
                               )}
                             </Badge>
                           </Card.Title>
-                          <div className="mb-2">
-                            <div style={{ display: "flex", alignItems: "center" }}>
-                              {ORDER_STATUSES.slice(0, 4).map((s, idx) => (
-                                <div
-                                  key={s.key}
-                                  style={{
-                                    flex: 1,
-                                    textAlign: "center",
-                                    color: statusIdx >= idx ? "#06a" : "#bbb",
-                                    fontWeight: statusIdx === idx ? 700 : 400,
-                                    fontSize: 13,
-                                  }}
-                                >
-                                  <div>{s.icon}</div>
-                                  <div>{s.label}</div>
-                                  {idx < 3 && (
-                                    <div
-                                      style={{
-                                        width: "100%",
-                                        height: 2,
-                                        background: statusIdx > idx ? "#06a" : "#eee",
-                                        margin: "4px 0 0 0",
-                                      }}
-                                    />
+                          {/* Timeline Bar */}
+                          <div className="mb-2" style={{ borderBottom: "2px solid #1976d2", display: "flex", alignItems: "flex-end", marginLeft: 1 }}>
+                            {TIMELINE_STATUSES.map((s, idx) => (
+                              <div
+                                key={s.key}
+                                className="text-center flex-grow-1"
+                                style={{
+                                  color:
+                                    idx < timelineIdx
+                                      ? "#1976d2"
+                                      : idx === timelineIdx
+                                      ? "#1976d2"
+                                      : "#bbb",
+                                  fontWeight: idx === timelineIdx ? 700 : 400,
+                                  position: "relative",
+                                  paddingBottom: 6,
+                                }}
+                              >
+                                <div style={{ fontSize: 20, display: "flex", justifyContent: "center" }}>
+                                  {/* Show check on delivered */}
+                                  {idx === timelineIdx && s.key === "delivered" ? (
+                                    <FaCheckCircle color="green" />
+                                  ) : (
+                                    s.icon
                                   )}
                                 </div>
-                              ))}
-                            </div>
+                                <div style={{ fontSize: 13 }}>{s.label}</div>
+                                {/* Progress underline for completed steps */}
+                                {idx < timelineIdx && (
+                                  <div
+                                    style={{
+                                      position: "absolute",
+                                      bottom: -2,
+                                      left: 0,
+                                      right: 0,
+                                      height: 3,
+                                      background: "#1976d2",
+                                    }}
+                                  />
+                                )}
+                              </div>
+                            ))}
                           </div>
-
-                          <div style={{ color: "#222", marginBottom: 6, fontSize: "1rem" }}>
+                          {extraStatus && (
+                            <Badge bg={extraStatus.badgeBg} className="ms-2">
+                              {extraStatus.label}
+                            </Badge>
+                          )}
+                          <div
+                            style={{
+                              color: "#222",
+                              marginBottom: 6,
+                              fontSize: "1rem",
+                            }}
+                          >
                             <strong>Status:</strong>{" "}
                             <span
                               style={{
@@ -261,72 +378,69 @@ const Dashboard = () => {
                                     : "#888",
                               }}
                             >
-                              {ORDER_STATUSES.find((st) => st.key === order.status)?.label || order.status}
+                              {TIMELINE_STATUSES.concat(EXTRA_STATUSES).find(
+                                (st) => st.key === order.status
+                              )?.label || order.status}
                             </span>
                           </div>
                           <div style={{ fontSize: "0.98rem", color: "#444" }}>
                             <span>
-                              Placed:{" "}
-                              <span style={{ color: "#333" }}>
-                                {order.timestamp && order.timestamp.seconds
-                                  ? new Date(order.timestamp.seconds * 1000).toLocaleString()
-                                  : ""}
-                              </span>
+                              Placed: <span style={{ color: "#333" }}>{placedDate || "N/A"}</span>
                             </span>
                           </div>
-                          {order.items && Array.isArray(order.items) && order.items.length > 0 && (
-                            <div className="mt-3">
-                              <strong>Items:</strong>
-                              <ListGroup variant="flush">
-                                {order.items.map((item, idx) => (
-                                  <ListGroup.Item key={idx} style={{ background: "transparent", paddingLeft: 0 }}>
-                                    {item.name ? item.name : "Item"}{" "}
-                                    {item.qty && (
-                                      <Badge bg="secondary" pill className="ms-1">
-                                        x{item.qty}
-                                      </Badge>
-                                    )}
-                                    {item.price && (
-                                      <span className="ms-2" style={{ color: "#06a" }}>
-                                        {item.price}
-                                      </span>
-                                    )}
-                                  </ListGroup.Item>
-                                ))}
-                              </ListGroup>
-                            </div>
-                          )}
-
+                          {order.items &&
+                            Array.isArray(order.items) &&
+                            order.items.length > 0 && (
+                              <div className="mt-3">
+                                <strong>Items:</strong>
+                                <ListGroup variant="flush">
+                                  {order.items.map((item, idx) => (
+                                    <ListGroup.Item
+                                      key={idx}
+                                      style={{
+                                        background: "transparent",
+                                        paddingLeft: 0,
+                                      }}
+                                    >
+                                      {item.name ? item.name : "Item"}{" "}
+                                      {item.qty && (
+                                        <Badge bg="secondary" pill className="ms-1">
+                                          x{item.qty}
+                                        </Badge>
+                                      )}
+                                      {item.price && (
+                                        <span className="ms-2" style={{ color: "#06a" }}>
+                                          {item.price}
+                                        </span>
+                                      )}
+                                    </ListGroup.Item>
+                                  ))}
+                                </ListGroup>
+                              </div>
+                            )}
                           <div className="mt-3 d-flex flex-wrap gap-2">
                             <Button
                               size="sm"
                               variant="outline-danger"
                               disabled={!allowCancel || actionLoading}
-                              onClick={() => {
-                                if (!allowCancel) {
-                                  alert("Cancel not allowed for this status: " + order.status);
-                                  console.log("Cancel NOT allowed for", order.id, order.status);
-                                } else {
-                                  console.log("Cancel button clicked", order.id);
-                                  setModal({ show: true, type: "cancel", orderId: order.id });
-                                }
-                              }}
+                              onClick={() =>
+                                setModal({ show: true, type: "cancel", orderId: order.id })
+                              }
                             >
                               <FaTimesCircle className="mb-1" /> Cancel Order
                             </Button>
                             <Button
                               size="sm"
                               variant="outline-warning"
-                              disabled={!allowReturn || actionLoading}
-                              onClick={() => {
-                                if (!allowReturn) {
-                                  alert("Return not allowed for this status: " + order.status);
-                                  console.log("Return NOT allowed for", order.id, order.status);
-                                } else {
-                                  console.log("Return button clicked", order.id);
-                                  setModal({ show: true, type: "return", orderId: order.id });
-                                }
-                              }}
+                              disabled={
+                                !allowReturn ||
+                                actionLoading ||
+                                order.status === "returnRequested" ||
+                                order.status === "cancelRequested"
+                              }
+                              onClick={() =>
+                                setModal({ show: true, type: "return", orderId: order.id })
+                              }
                             >
                               <FaUndo className="mb-1" /> Request Return
                             </Button>
@@ -359,10 +473,11 @@ const Dashboard = () => {
           )}
         </Col>
       </Row>
-      <Modal show={modal.show} onHide={() => {
-        console.log("Modal closed");
-        setModal({ show: false, type: "", orderId: null });
-      }} centered>
+      <Modal
+        show={modal.show}
+        onHide={() => setModal({ show: false, type: "", orderId: null })}
+        centered
+      >
         <Modal.Header closeButton>
           <Modal.Title>
             {modal.type === "cancel" ? "Cancel Order" : "Request Return"}
@@ -374,18 +489,15 @@ const Dashboard = () => {
             : "Are you sure you want to request a return for this order?"}
         </Modal.Body>
         <Modal.Footer>
-          <Button variant="secondary" onClick={() => {
-            console.log("Modal close button clicked");
-            setModal({ show: false, type: "", orderId: null });
-          }}>
+          <Button
+            variant="secondary"
+            onClick={() => setModal({ show: false, type: "", orderId: null })}
+          >
             Close
           </Button>
           <Button
             variant={modal.type === "cancel" ? "danger" : "warning"}
-            onClick={() => {
-              console.log("Confirm clicked", modal.orderId, modal.type);
-              handleAction(modal.orderId, modal.type);
-            }}
+            onClick={() => handleAction(modal.orderId, modal.type)}
             disabled={actionLoading}
           >
             {actionLoading ? "Processing..." : "Confirm"}

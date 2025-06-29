@@ -1,0 +1,21 @@
+{
+  "name": "firestore-orders",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "dev": "nodemon server.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^5.1.0",
+    "firebase-admin": "^13.4.0",
+    "morgan": "^1.10.0",
+    "nodemailer": "^7.0.3",
+    "uuid": "^11.1.0"
+  }
+}

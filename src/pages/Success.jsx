@@ -1,61 +1,120 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Container, Row, Col, Card, Button, Modal, Form, Alert } from "react-bootstrap";
 import { useLocation, useNavigate } from "react-router-dom";
 import { FaCheckCircle, FaPhoneAlt, FaCreditCard, FaMoneyBillWave } from "react-icons/fa";
 import { useAuth } from "../context/AuthContext";
-import { db } from "../firebase";
-import { collection, addDoc, serverTimestamp } from "firebase/firestore";
+import { v4 as uuidv4 } from "uuid";
 
 export default function Success() {
   const location = useLocation();
   const navigate = useNavigate();
   const { user } = useAuth();
 
-  // Simulated details (replace with real state/props)
-  const paymentMethod = location.state?.paymentMethod || "cod"; // default to cash on delivery
-  const orderTotal = location.state?.orderTotal || "₦12,500";
-  const cartItems = location.state?.cartItems || []; // recommended to pass cart items from checkout
+  // Prefer cart/order info from route state, fallback to localStorage ("cartList" key for consistency)
+  const [cartItems] = useState(
+    location.state?.cartItems ||
+      JSON.parse(localStorage.getItem("cartList")) ||
+      []
+  );
+  const [orderTotal] = useState(
+    location.state?.orderTotal ||
+      cartItems.reduce((sum, item) => sum + (item.price * (item.qty || 1)), 0) ||
+      "₦12,500"
+  );
+  const [paymentMethod] = useState(
+    location.state?.paymentMethod || "cod"
+  );
   const customer = {
     name: user?.displayName || "Johnson Olayemi",
     phone: "08063856166",
     palmpay: "08063856166 ogunyankin johnson olayemi",
   };
 
-  // For Paystack modal
+  // For payment modals
   const [showPaystack, setShowPaystack] = useState(false);
-  // For Debit Card modal
   const [showCard, setShowCard] = useState(false);
   const [cardSuccess, setCardSuccess] = useState(false);
 
-  // Save order to Firestore on mount (only once)
-  useEffect(() => {
-    // Only save order if user exists and we haven't already saved (avoid duplicates)
-    let saved = false;
-    if (user && !saved) {
-      const saveOrder = async () => {
-        try {
-          await addDoc(collection(db, "orders"), {
-            userId: user.uid,
-            userName: user.displayName || user.email,
-            orderTotal: orderTotal,
-            paymentMethod: paymentMethod,
-            items: cartItems,
-            timestamp: serverTimestamp(),
-            status: "success",
-            // add more order details as needed
-          });
-          saved = true;
-        } catch (err) {
-          // Optionally show error to user
-          console.error("Error saving order:", err);
-        }
-      };
-      saveOrder();
-    }
-    // eslint-disable-next-line
-  }, [user, orderTotal, paymentMethod, cartItems]);
+  // Order submission states
+  const [orderId, setOrderId] = useState(null);
+  const [orderError, setOrderError] = useState("");
+  const [orderLoading, setOrderLoading] = useState(false);
 
-  // Show modal if paystack/card is picked
+  // Prevent duplicate order submission
+  const hasPostedOrder = useRef(false);
+
+  // Redirect if cart is empty
+  useEffect(() => {
+    if (!cartItems.length) {
+      navigate("/cart");
+    }
+  }, [cartItems, navigate]);
+
+  // Send order to backend (prevents double POST)
+  useEffect(() => {
+    // Debug log
+    console.log("user:", user, "cartItems:", cartItems, "orderId:", orderId, "orderLoading:", orderLoading);
+
+    if (!user || !cartItems.length || orderId || orderLoading || hasPostedOrder.current) return;
+
+    hasPostedOrder.current = true; // Prevent double submit
+
+    const submitOrder = async () => {
+      setOrderLoading(true);
+      setOrderError("");
+      try {
+        if (!user.getIdToken) {
+          setOrderError("User not authenticated.");
+          setOrderLoading(false);
+          return;
+        }
+        const token = await user.getIdToken();
+        console.log("Firebase token:", token); // Debugging
+
+        const orderData = {
+          userId: user.uid,
+          userName: user.displayName || user.email,
+          userEmail: user.email,
+          orderTotal,
+          paymentMethod,
+          cartItems,  // Use 'items' for backend consistency
+          status: "success",
+          clientOrderId: uuidv4(), 
+        };
+        console.log("Order data to be sent:", orderData); // Debugging
+
+        const res = await fetch("http://localhost:3001/order", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify(orderData),
+        });
+
+        // Debug response
+        const data = await res.json();
+        console.log("Order response:", data);
+
+        setOrderLoading(false);
+        if (data.success) {
+          setOrderId(data.orderId);
+          // Clear cart after successful order
+          localStorage.removeItem("cartList");
+        } else {
+          setOrderError(data.error || "Order failed");
+        }
+      } catch (err) {
+        setOrderLoading(false);
+        setOrderError(err.message || "Network error");
+        console.error("Order submission error:", err);
+      }
+    };
+
+    submitOrder();
+    // eslint-disable-next-line
+  }, [user, cartItems, orderTotal, paymentMethod, orderId, orderLoading]);
+
   useEffect(() => {
     if (paymentMethod === "paystack") setShowPaystack(true);
     if (paymentMethod === "debitcard") setShowCard(true);
@@ -80,7 +139,7 @@ export default function Success() {
 
   return (
     <div style={{ minHeight: "100vh", background: "#f6f9fc", paddingTop: 40, paddingBottom: 40 }}>
-      {/* Paystack Modal */}
+      {/* Payment Modals */}
       <Modal show={showPaystack} onHide={() => setShowPaystack(false)} centered>
         <Modal.Header closeButton>
           <Modal.Title>Pay with Paystack</Modal.Title>
@@ -96,8 +155,6 @@ export default function Success() {
           </Button>
         </Modal.Body>
       </Modal>
-
-      {/* Debit Card Modal */}
       <Modal show={showCard} onHide={() => setShowCard(false)} centered>
         <Modal.Header closeButton>
           <Modal.Title>Pay with Debit Card</Modal.Title>
@@ -153,7 +210,16 @@ export default function Success() {
                   Your order total: <b style={{ color: "#06a" }}>{orderTotal}</b>
                 </div>
 
-                {/* Show dynamic details based on payment */}
+                {orderLoading && <Alert variant="info">Placing your order...</Alert>}
+                {orderError && <Alert variant="danger">{orderError}</Alert>}
+                {orderId && (
+                  <Alert variant="success">
+                    Order ID: <b>{orderId}</b><br />
+                    A confirmation email has been sent to you!
+                  </Alert>
+                )}
+
+                {/* Payment instructions */}
                 {paymentMethod === "cod" && (
                   <div>
                     <FaMoneyBillWave size={28} color="#ffbb00" className="mb-3" />

@@ -16,41 +16,27 @@ export const cartSlice = createSlice({
     addToCart: (state, action) => {
       const productToAdd = action.payload.product;
       const quantity = action.payload.num;
-      const productExit = state.cartList.find(
-        (item) => item.id === productToAdd.id
-      );
-      if (productExit) {
-        state.cartList = state.cartList.map((item) =>
-          item.id === action.payload.product.id
-            ? { ...productExit, qty: productExit.qty + action.payload.num }
-            : item
-        );
+      const existing = state.cartList.find(item => item.id === productToAdd.id);
+      if (existing) {
+        existing.qty += quantity;
       } else {
         state.cartList.push({ ...productToAdd, qty: quantity });
       }
     },
     decreaseQty: (state, action) => {
-      const productTodecreaseQnty = action.payload;
-      const productExit = state.cartList.find(
-        (item) => item.id === productTodecreaseQnty.id
-      );
-      if (productExit.qty === 1) {
-        state.cartList = state.cartList.filter(
-          (item) => item.id !== productExit.id
-        );
-      } else {
-        state.cartList = state.cartList.map((item) =>
-          item.id === productExit.id
-            ? { ...productExit, qty: productExit.qty - 1 }
-            : item
-        );
+      const product = action.payload;
+      const existing = state.cartList.find(item => item.id === product.id);
+      if (existing) {
+        if (existing.qty === 1) {
+          state.cartList = state.cartList.filter(item => item.id !== product.id);
+        } else {
+          existing.qty -= 1;
+        }
       }
     },
     deleteProduct: (state, action) => {
-      const productToDelete = action.payload;
-      state.cartList = state.cartList.filter(
-        (item) => item.id !== productToDelete.id
-      );
+      const product = action.payload;
+      state.cartList = state.cartList.filter(item => item.id !== product.id);
     },
     clearCart: (state) => {
       state.cartList = [];
@@ -58,6 +44,7 @@ export const cartSlice = createSlice({
   },
 });
 
+// Persist cartList to localStorage on any cart action
 export const cartMiddleware = (store) => (next) => (action) => {
   const result = next(action);
   if (action.type?.startsWith("cart/")) {

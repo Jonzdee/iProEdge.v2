@@ -22,6 +22,11 @@ const Cart = () => {
     window.scrollTo(0, 0);
   }, []);
 
+  // STEP 1: Save cartList to localStorage whenever it changes
+  useEffect(() => {
+    localStorage.setItem('cartList', JSON.stringify(cartList));
+  }, [cartList]);
+
   return (
     <section className="cart-items">
       <Container>
@@ -44,7 +49,14 @@ const Cart = () => {
                   size="lg"
                   className="w-100 custom-dark-blue"
                   disabled={cartList.length === 0}
-                  onClick={() => navigate("/checkout")}
+                  onClick={() =>
+                    navigate("/checkout", {
+                      state: {
+                        cartItems: cartList,         // (Optional) Pass cart in navigation state
+                        orderTotal: totalPrice,
+                      }
+                    })
+                  }
                 >
                   Proceed to Checkout
                 </Button>
