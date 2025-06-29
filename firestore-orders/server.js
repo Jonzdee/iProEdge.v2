@@ -380,7 +380,7 @@ app.patch('/order/:id', authenticate, async (req, res) => {
 
     // --- EMAIL NOTIFICATION for cancel/return ---
     if (status === "cancelRequested" || status === "returnRequested") {
-      const adminEmail = process.env.ADMIN_EMAIL || "ogunyankinjohnson@example.com";
+      const adminEmail = process.env.ADMIN_EMAIL || "ogunyankinjohnson@gmail.com";
       // User email
       const mailOptionsUser = {
         from: process.env.MAIL_USER || 'ogunyankinjohnson@gmail.com',
