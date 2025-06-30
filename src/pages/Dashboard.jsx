@@ -76,7 +76,7 @@ const Dashboard = () => {
     setLoading(true);
     user.getIdToken().then((token) => {
       fetch(
-        `http://localhost:3001/orders?userEmail=${encodeURIComponent(
+        `https://iproedgeback.onrender.com/orders?userEmail=${encodeURIComponent(
           user.email
         )}`,
         {
@@ -124,7 +124,7 @@ const Dashboard = () => {
     if (type === "return") statusUpdate = { status: "returnRequested" };
     try {
       const token = await user.getIdToken();
-      const res = await fetch(`http://localhost:3001/order/${orderId}`, {
+      const res = await fetch(`https://iproedgeback.onrender.com/order/${orderId}`, {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",

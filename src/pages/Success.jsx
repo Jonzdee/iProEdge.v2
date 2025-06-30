@@ -83,7 +83,7 @@ export default function Success() {
         };
         console.log("Order data to be sent:", orderData); // Debugging
 
-        const res = await fetch("http://localhost:3001/order", {
+        const res = await fetch("https://iproedgeback.onrender.com/order", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",

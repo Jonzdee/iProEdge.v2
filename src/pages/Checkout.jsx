@@ -203,7 +203,7 @@ const Checkout = () => {
     };
     console.log("Order Payload:", orderPayload); // Debug: Check values
 
-    const response = await fetch("http://localhost:3001/order", {
+    const response = await fetch("https://iproedgeback.onrender.com/order", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
