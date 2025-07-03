@@ -71,7 +71,7 @@
 button.add {
     background: #092649;
     color: #fff;
-    font-size: 8px;
+    font-size: 12px;
     padding: 8px 10px;
     border-radius: 8px;
     border: none;
@@ -114,11 +114,3 @@ button.add:hover {
     opacity: 1;
 }
 
-@media (max-width: 576px) {
-  .product {
-    width: 48%; /* 2 per row, some margin between */
-    margin: 1%;
-    display: inline-block;
-    vertical-align: top;
-  }
-}
