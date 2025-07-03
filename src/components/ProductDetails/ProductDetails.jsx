@@ -58,7 +58,7 @@ const ProductDetails = ({ selectedProduct }) => {
                   <div key={idx}>
                     <img
                       src={imgUrl}
-                      alt={`Product image ${idx + 1}`}
+                      alt={`Product image ₦{idx + 1}`}
                       style={{
                         width: "100%",
                         height: 300,
@@ -93,7 +93,7 @@ const ProductDetails = ({ selectedProduct }) => {
               </span>
               {selectedProduct?.oldPrice && (
                 <span className="old-price ms-2 text-muted">
-                  <del>${selectedProduct.oldPrice?.toFixed(2)}</del>
+                  <del>₦{selectedProduct.oldPrice?.toFixed(2)}</del>
                 </span>
               )}
               {selectedProduct?.discount && (

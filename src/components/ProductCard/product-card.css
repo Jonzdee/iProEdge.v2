@@ -113,3 +113,12 @@ button.add:hover {
 .product:hover .product-like {
     opacity: 1;
 }
+
+@media (max-width: 576px) {
+  .product {
+    width: 48%; /* 2 per row, some margin between */
+    margin: 1%;
+    display: inline-block;
+    vertical-align: top;
+  }
+}
