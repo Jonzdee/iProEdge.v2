@@ -105,12 +105,7 @@ const ProductDetails = ({ selectedProduct }) => {
             {selectedProduct?.shortDesc && (
               <p className="short-desc">{selectedProduct.shortDesc}</p>
             )}
-            {selectedProduct?.description && (
-              <div className="desc">
-                <h5>Description</h5>
-                <p>{selectedProduct.description}</p>
-              </div>
-            )}
+            
             {selectedProduct?.warranty && (
               <div className="warranty">
                 <h6>Warranty</h6>
