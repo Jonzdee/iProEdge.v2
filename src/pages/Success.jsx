@@ -40,7 +40,7 @@ export default function Success() {
   const customer = {
     name: user?.displayName || "Johnson Olayemi",
     phone: "08063856166",
-    palmpay: "08063856166 ogunyankin johnson olayemi",
+    palmpay: "8063856166 ogunyankin johnson olayemi",
   };
 
   // For payment modals
