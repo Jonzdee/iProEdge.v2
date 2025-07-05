@@ -1,7 +1,21 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Container, Row, Col, Card, Button, Modal, Form, Alert } from "react-bootstrap";
+import {
+  Container,
+  Row,
+  Col,
+  Card,
+  Button,
+  Modal,
+  Form,
+  Alert,
+} from "react-bootstrap";
 import { useLocation, useNavigate } from "react-router-dom";
-import { FaCheckCircle, FaPhoneAlt, FaCreditCard, FaMoneyBillWave } from "react-icons/fa";
+import {
+  FaCheckCircle,
+  FaPhoneAlt,
+  FaCreditCard,
+  FaMoneyBillWave,
+} from "react-icons/fa";
 import { useAuth } from "../context/AuthContext";
 import { v4 as uuidv4 } from "uuid";
 
@@ -18,12 +32,10 @@ export default function Success() {
   );
   const [orderTotal] = useState(
     location.state?.orderTotal ||
-      cartItems.reduce((sum, item) => sum + (item.price * (item.qty || 1)), 0) ||
+      cartItems.reduce((sum, item) => sum + item.price * (item.qty || 1), 0) ||
       "₦12,500"
   );
-  const [paymentMethod] = useState(
-    location.state?.paymentMethod || "cod"
-  );
+  const [paymentMethod] = useState(location.state?.paymentMethod || "cod");
   const customer = {
     name: user?.displayName || "Johnson Olayemi",
     phone: "08063856166",
@@ -36,7 +48,7 @@ export default function Success() {
   const [cardSuccess, setCardSuccess] = useState(false);
 
   // Order submission states
-  const [orderId, setOrderId] = useState(null);
+  const [orderId, setOrderId] = useState(() => localStorage.getItem("orderId") || null);
   const [orderError, setOrderError] = useState("");
   const [orderLoading, setOrderLoading] = useState(false);
 
@@ -50,11 +62,14 @@ export default function Success() {
     }
   }, [cartItems, navigate]);
 
+  const handleNotifyPaid = () => {
+    alert("Thank you! We will verify your payment and process your order shortly.");
+    // Optionally send a notification to your backend here
+  };
+
   // Send order to backend (prevents double POST)
   useEffect(() => {
-    // Debug log
-    console.log("user:", user, "cartItems:", cartItems, "orderId:", orderId, "orderLoading:", orderLoading);
-
+    // If orderId is already in localStorage, don't send again
     if (!user || !cartItems.length || orderId || orderLoading || hasPostedOrder.current) return;
 
     hasPostedOrder.current = true; // Prevent double submit
@@ -69,7 +84,6 @@ export default function Success() {
           return;
         }
         const token = await user.getIdToken();
-        console.log("Firebase token:", token); // Debugging
 
         const orderData = {
           userId: user.uid,
@@ -77,11 +91,10 @@ export default function Success() {
           userEmail: user.email,
           orderTotal,
           paymentMethod,
-          cartItems,  // Use 'items' for backend consistency
+          cartItems,
           status: "success",
-          clientOrderId: uuidv4(), 
+          clientOrderId: uuidv4(),
         };
-        console.log("Order data to be sent:", orderData); // Debugging
 
         const res = await fetch("https://iproedgeback.onrender.com/order", {
           method: "POST",
@@ -92,15 +105,13 @@ export default function Success() {
           body: JSON.stringify(orderData),
         });
 
-        // Debug response
         const data = await res.json();
-        console.log("Order response:", data);
 
         setOrderLoading(false);
         if (data.success) {
           setOrderId(data.orderId);
-          // Clear cart after successful order
           localStorage.removeItem("cartList");
+          localStorage.setItem("orderId", data.orderId); // Save orderId to localStorage
         } else {
           setOrderError(data.error || "Order failed");
         }
@@ -138,7 +149,14 @@ export default function Success() {
   };
 
   return (
-    <div style={{ minHeight: "100vh", background: "#f6f9fc", paddingTop: 40, paddingBottom: 40 }}>
+    <div
+      style={{
+        minHeight: "100vh",
+        background: "#f6f9fc",
+        paddingTop: 40,
+        paddingBottom: 40,
+      }}
+    >
       {/* Payment Modals */}
       <Modal show={showPaystack} onHide={() => setShowPaystack(false)} centered>
         <Modal.Header closeButton>
@@ -147,10 +165,18 @@ export default function Success() {
         <Modal.Body>
           <div className="text-center mb-3">
             <FaCheckCircle color="#06a" size={48} className="mb-2" />
-            <div style={{ fontWeight: 600, fontSize: 18, marginBottom: 10 }}>Almost done!</div>
-            <div>Click the button below to pay <b>{orderTotal}</b> with Paystack.</div>
+            <div style={{ fontWeight: 600, fontSize: 18, marginBottom: 10 }}>
+              Almost done!
+            </div>
+            <div>
+              Click the button below to pay <b>{orderTotal}</b> with Paystack.
+            </div>
           </div>
-          <Button style={{ background: "#06a", border: 0 }} className="w-100" onClick={handlePaystackPay}>
+          <Button
+            style={{ background: "#06a", border: 0 }}
+            className="w-100"
+            onClick={handlePaystackPay}
+          >
             Pay Now
           </Button>
         </Modal.Body>
@@ -164,7 +190,11 @@ export default function Success() {
             <Form onSubmit={handleCardPay}>
               <Form.Group className="mb-2">
                 <Form.Label>Card Number</Form.Label>
-                <Form.Control required maxLength={19} placeholder="1234 5678 9012 3456" />
+                <Form.Control
+                  required
+                  maxLength={19}
+                  placeholder="1234 5678 9012 3456"
+                />
               </Form.Group>
               <Row>
                 <Col xs={6}>
@@ -180,14 +210,20 @@ export default function Success() {
                   </Form.Group>
                 </Col>
               </Row>
-              <Button className="w-100 mt-2" style={{ background: "#06a", border: 0 }} type="submit">
+              <Button
+                className="w-100 mt-2"
+                style={{ background: "#06a", border: 0 }}
+                type="submit"
+              >
                 Pay {orderTotal}
               </Button>
             </Form>
           ) : (
             <div className="text-center py-5">
               <FaCheckCircle color="green" size={48} className="mb-2" />
-              <div style={{ fontWeight: 600, fontSize: 18, marginBottom: 10 }}>Payment Successful!</div>
+              <div style={{ fontWeight: 600, fontSize: 18, marginBottom: 10 }}>
+                Payment Successful!
+              </div>
               <div>Thank you for your order.</div>
             </div>
           )}
@@ -198,38 +234,63 @@ export default function Success() {
         <Row className="justify-content-center">
           <Col xs={12} md={8} lg={6}>
             <Card className="shadow-sm" style={{ borderRadius: 16 }}>
-              <Card.Body className="text-center" style={{ padding: "2.5rem 1.5rem" }}>
+              <Card.Body
+                className="text-center"
+                style={{ padding: "2.5rem 1.5rem" }}
+              >
                 <FaCheckCircle color="green" size={44} className="mb-3" />
-                <h3 style={{ fontWeight: 700, marginBottom: 12, color: "#1a1a1a" }}>
-                  {paymentMethod === "cod" ? "Order Placed!" : paymentMethod === "palmpay" ? "Complete Your Palmpay Payment" : "Order Placed!"}
+                <h3
+                  style={{
+                    fontWeight: 700,
+                    marginBottom: 12,
+                    color: "#1a1a1a",
+                  }}
+                >
+                  {paymentMethod === "cod"
+                    ? "Order Placed!"
+                    : paymentMethod === "palmpay"
+                    ? "Complete Your Palmpay Payment"
+                    : "Order Placed!"}
                 </h3>
-                <div className="mb-3" style={{ fontSize: "1.15rem", color: "#222" }}>
+                <div
+                  className="mb-3"
+                  style={{ fontSize: "1.15rem", color: "#222" }}
+                >
                   Thank you for shopping with us, {customer.name.split(" ")[0]}!
                 </div>
                 <div className="mb-4" style={{ color: "#444" }}>
-                  Your order total: <b style={{ color: "#06a" }}>{orderTotal}</b>
+                  Your order total:{" "}
+                  <b style={{ color: "#06a" }}>{orderTotal}</b>
                 </div>
 
-                {orderLoading && <Alert variant="info">Placing your order...</Alert>}
+                {orderLoading && (
+                  <Alert variant="info">Placing your order...</Alert>
+                )}
                 {orderError && <Alert variant="danger">{orderError}</Alert>}
                 {orderId && (
                   <Alert variant="success">
-                    Order ID: <b>{orderId}</b><br />
-                    A confirmation email has been sent to you!
+                    Order ID: <b>{orderId}</b>
+                    <br />A confirmation email has been sent to you!
                   </Alert>
                 )}
 
                 {/* Payment instructions */}
                 {paymentMethod === "cod" && (
                   <div>
-                    <FaMoneyBillWave size={28} color="#ffbb00" className="mb-3" />
+                    <FaMoneyBillWave
+                      size={28}
+                      color="#ffbb00"
+                      className="mb-3"
+                    />
                     <div className="mb-2" style={{ fontSize: "1.05rem" }}>
                       Pay on delivery. Our agent will contact you soon.
                     </div>
                     <Alert variant="info" className="mb-2">
                       <FaPhoneAlt /> <b>{customer.phone}</b>
                       <br />
-                      <span style={{ fontSize: 15 }}>Call this number to track your package.</span>
+                      <span style={{ fontSize: 15 }}>
+                        Call this number to track your package.
+                      </span>
                     </Alert>
                     <div className="text-muted" style={{ fontSize: "0.95rem" }}>
                       Please keep your phone available for delivery updates.
@@ -240,30 +301,66 @@ export default function Success() {
                 {paymentMethod === "palmpay" && (
                   <div>
                     <div className="mb-2">
-                      <img src="https://techlifewithugo.com.ng/wp-content/uploads/2024/05/PalmPay-logo-1.jpg.jpeg" width={38} alt="Palmpay" />
+                      <img
+                        src="https://techlifewithugo.com.ng/wp-content/uploads/2024/05/PalmPay-logo-1.jpg.jpeg"
+                        width={38}
+                        alt="Palmpay"
+                      />
                     </div>
                     <div className="mb-2" style={{ fontSize: "1.08rem" }}>
                       Please transfer <b>{orderTotal}</b> to:
                     </div>
-                    <Alert variant="success" className="mb-2" style={{ fontSize: "1.05rem" }}>
+                    <Alert
+                      variant="success"
+                      className="mb-2"
+                      style={{ fontSize: "1.05rem" }}
+                    >
                       <b>{customer.palmpay}</b>
                     </Alert>
                     <div style={{ fontSize: "0.98rem", marginBottom: 8 }}>
-                      After payment, call <b>{customer.phone}</b> to confirm and track your order.
+                      After payment, call <b>{customer.phone}</b> to confirm and
+                      track your order.
                     </div>
                     <Button
                       variant="outline-primary"
                       size="sm"
                       onClick={() => window.open(`tel:${customer.phone}`)}
+                      className="mb-2"
                     >
                       <FaPhoneAlt /> Call Now
                     </Button>
+                    <div
+                      style={{
+                        color: "#c00",
+                        fontWeight: 500,
+                        marginTop: 14,
+                        fontSize: "0.97rem",
+                      }}
+                    >
+                      <b>Note:</b> If payment is not made within 24 hours, your
+                      order will be cancelled automatically.
+                    </div>
+                    <div style={{ marginTop: 10 }}>
+                      Already paid?{" "}
+                      <Button
+                        size="sm"
+                        variant="outline-success"
+                        onClick={handleNotifyPaid}
+                      >
+                        I have paid
+                      </Button>
+                    </div>
                   </div>
                 )}
 
                 {paymentMethod === "paystack" && (
                   <div>
-                    <img src="https://seeklogo.com/images/P/paystack-logo-F1577E4C8B-seeklogo.com.png" width={44} alt="Paystack" className="mb-2" />
+                    <img
+                      src="https://seeklogo.com/images/P/paystack-logo-F1577E4C8B-seeklogo.com.png"
+                      width={44}
+                      alt="Paystack"
+                      className="mb-2"
+                    />
                     <div style={{ fontSize: "1.08rem" }}>
                       Paystack payment in progress. <br />
                       If the payment popup is closed,{" "}
@@ -284,7 +381,9 @@ export default function Success() {
                     <div style={{ fontSize: "1.08rem" }}>
                       Debit card payment. <br />
                       {cardSuccess ? (
-                        <span style={{ color: "green" }}>Payment Successful!</span>
+                        <span style={{ color: "green" }}>
+                          Payment Successful!
+                        </span>
                       ) : (
                         <span>
                           If you did not complete card payment,{" "}

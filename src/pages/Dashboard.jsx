@@ -29,8 +29,16 @@ import jsPDF from "jspdf";
 const TIMELINE_STATUSES = [
   { key: "processing", label: "Processing", icon: <FaRegClock color="#888" /> },
   { key: "shipped", label: "Shipped", icon: <FaTruck color="#007bff" /> },
-  { key: "outForDelivery", label: "Out for Delivery", icon: <FaHome color="#ffc107" /> },
-  { key: "delivered", label: "Delivered", icon: <FaCheckCircle color="green" /> },
+  {
+    key: "outForDelivery",
+    label: "Out for Delivery",
+    icon: <FaHome color="#ffc107" />,
+  },
+  {
+    key: "delivered",
+    label: "Delivered",
+    icon: <FaCheckCircle color="green" />,
+  },
 ];
 
 const EXTRA_STATUSES = [
@@ -57,7 +65,37 @@ function getTimelineStatusIndex(status) {
 function getExtraStatus(status) {
   return EXTRA_STATUSES.find((s) => s.key === status);
 }
-
+// 3. Extract payment badge to a component
+const PaymentBadge = ({ paymentMethod }) => {
+  switch (paymentMethod) {
+    case "cod":
+      return (
+        <Badge pill bg="warning" className="ms-2" aria-label="Cash on Delivery">
+          <FaMoneyBillWave /> Cash on Delivery
+        </Badge>
+      );
+    case "palmpay":
+      return (
+        <Badge pill bg="success" className="ms-2" aria-label="Palmpay">
+          Palmpay
+        </Badge>
+      );
+    case "paystack":
+      return (
+        <Badge pill bg="primary" className="ms-2" aria-label="Paystack">
+          Paystack
+        </Badge>
+      );
+    case "debitcard":
+      return (
+        <Badge pill bg="primary" className="ms-2" aria-label="Debit Card">
+          <FaCreditCard /> Debit Card
+        </Badge>
+      );
+    default:
+      return null;
+  }
+};
 const Dashboard = () => {
   const { user } = useAuth();
   const [orders, setOrders] = useState([]);
@@ -69,6 +107,16 @@ const Dashboard = () => {
     variant: "",
     message: "",
   });
+  // 5. Feedback auto-dismiss
+  useEffect(() => {
+    if (feedback.show) {
+      const timer = setTimeout(
+        () => setFeedback((f) => ({ ...f, show: false })),
+        4000
+      );
+      return () => clearTimeout(timer);
+    }
+  }, [feedback]);
 
   // Fetch orders from backend API with authentication
   const fetchOrders = () => {
@@ -106,6 +154,17 @@ const Dashboard = () => {
     });
   };
 
+  // user becomes null (user logs out), so you clear orders and feedback immediately.
+  useEffect(() => {
+    if (!user) {
+      setOrders([]);
+      setFeedback({ show: false, variant: "", message: "" });
+      setLoading(false);
+      return;
+    }
+    fetchOrders();
+  }, [user]);
+
   useEffect(() => {
     fetchOrders();
   }, [user]);
@@ -124,14 +183,17 @@ const Dashboard = () => {
     if (type === "return") statusUpdate = { status: "returnRequested" };
     try {
       const token = await user.getIdToken();
-      const res = await fetch(`https://iproedgeback.onrender.com/order/${orderId}`, {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(statusUpdate),
-      });
+      const res = await fetch(
+        `https://iproedgeback.onrender.com/order/${orderId}`,
+        {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify(statusUpdate),
+        }
+      );
       const data = await res.json();
       if (data.success) {
         setFeedback({
@@ -171,25 +233,40 @@ const Dashboard = () => {
     docPdf.text(`Order Total: ${order.orderTotal}`, 14, 44);
     docPdf.text(`Payment Method: ${order.paymentMethod}`, 14, 52);
     docPdf.text(`Status: ${order.status}`, 14, 60);
-    docPdf.text(
-      `Order Date: ${
-        order.timestamp
-          ? new Date(
-              typeof order.timestamp === "object" && order.timestamp.seconds
-                ? order.timestamp.seconds * 1000
-                : order.timestamp
-            ).toLocaleString()
-          : ""
-      }`,
-      14,
-      68
-    );
+
+    // Debug line:
+    console.log("order.timestamp", order.timestamp, typeof order.timestamp);
+
+    // Robust timestamp handling
+    let orderDateStr = "N/A";
+    if (order.timestamp) {
+      let dateObj = null;
+      if (
+        typeof order.timestamp === "object" &&
+        (order.timestamp.seconds || order.timestamp._seconds)
+      ) {
+        // Support both Firestore keys
+        const seconds = order.timestamp.seconds || order.timestamp._seconds;
+        dateObj = new Date(seconds * 1000);
+      } else if (typeof order.timestamp === "string") {
+        dateObj = new Date(order.timestamp);
+      } else if (typeof order.timestamp === "number") {
+        dateObj = new Date(order.timestamp);
+      }
+      if (dateObj && !isNaN(dateObj.getTime())) {
+        orderDateStr = dateObj.toLocaleString();
+      }
+    }
+    docPdf.text(`Order Date: ${orderDateStr}`, 14, 68);
+
     docPdf.text("Items:", 14, 76);
     let y = 84;
     if (order.items && order.items.length > 0) {
       order.items.forEach((item, idx) => {
         docPdf.text(
-          `${idx + 1}. ${item.name || "Item"}  Qty: ${item.qty || 1}  Price: ${item.price || ""}`,
+          `${idx + 1}. ${item.name || "Item"}  Qty: ${item.qty || 1}  Price: ${
+            item.price || ""
+          }`,
           16,
           y
         );
@@ -250,14 +327,23 @@ const Dashboard = () => {
                 // Placed date fix for Firestore and string timestamps
                 let placedDate = "";
                 if (order.timestamp) {
-                  const d =
+                  let d = null;
+                  if (
                     typeof order.timestamp === "object" &&
-                    order.timestamp.seconds
-                      ? new Date(order.timestamp.seconds * 1000)
-                      : new Date(order.timestamp);
-                  placedDate = isNaN(d.getTime()) ? "" : d.toLocaleString();
+                    (order.timestamp.seconds || order.timestamp._seconds)
+                  ) {
+                    const seconds =
+                      order.timestamp.seconds || order.timestamp._seconds;
+                    d = new Date(seconds * 1000);
+                  } else if (
+                    typeof order.timestamp === "string" ||
+                    typeof order.timestamp === "number"
+                  ) {
+                    d = new Date(order.timestamp);
+                  }
+                  placedDate =
+                    d && !isNaN(d.getTime()) ? d.toLocaleString() : "";
                 }
-
                 return (
                   <Card
                     key={order.id}
@@ -274,7 +360,9 @@ const Dashboard = () => {
                           {TIMELINE_STATUSES[timelineIdx]?.icon}
                         </Col>
                         <Col xs={10} md={11}>
-                          <Card.Title style={{ fontSize: "1.15rem", fontWeight: 600 }}>
+                          <Card.Title
+                            style={{ fontSize: "1.15rem", fontWeight: 600 }}
+                          >
                             Order Total:{" "}
                             <span style={{ color: "#06a" }}>
                               {order.orderTotal?.toLocaleString()}
@@ -295,8 +383,12 @@ const Dashboard = () => {
                                   <FaMoneyBillWave /> Cash on Delivery
                                 </>
                               )}
-                              {order.paymentMethod === "palmpay" && <>Palmpay</>}
-                              {order.paymentMethod === "paystack" && <>Paystack</>}
+                              {order.paymentMethod === "palmpay" && (
+                                <>Palmpay</>
+                              )}
+                              {order.paymentMethod === "paystack" && (
+                                <>Paystack</>
+                              )}
                               {order.paymentMethod === "debitcard" && (
                                 <>
                                   <FaCreditCard /> Debit Card
@@ -305,47 +397,91 @@ const Dashboard = () => {
                             </Badge>
                           </Card.Title>
                           {/* Timeline Bar */}
-                          <div className="mb-2" style={{ borderBottom: "2px solid #1976d2", display: "flex", alignItems: "flex-end", marginLeft: 1 }}>
-                            {TIMELINE_STATUSES.map((s, idx) => (
-                              <div
-                                key={s.key}
-                                className="text-center flex-grow-1"
-                                style={{
-                                  color:
-                                    idx < timelineIdx
-                                      ? "#1976d2"
-                                      : idx === timelineIdx
-                                      ? "#1976d2"
-                                      : "#bbb",
-                                  fontWeight: idx === timelineIdx ? 700 : 400,
-                                  position: "relative",
-                                  paddingBottom: 6,
-                                }}
-                              >
-                                <div style={{ fontSize: 20, display: "flex", justifyContent: "center" }}>
-                                  {/* Show check on delivered */}
-                                  {idx === timelineIdx && s.key === "delivered" ? (
+                          <div
+                            className="mb-2"
+                            style={{
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "space-between",
+                              marginLeft: 1,
+                              minHeight: 56,
+                            }}
+                          >
+                            {TIMELINE_STATUSES.map((s, idx) => {
+                              // Determine the step state
+                              let icon;
+                              let color;
+                              if (idx < timelineIdx) {
+                                // Completed
+                                icon = <FaCheckCircle color="#1976d2" />;
+                                color = "#1976d2";
+                              } else if (idx === timelineIdx) {
+                                // Current
+                                icon =
+                                  s.key === "delivered" ? (
                                     <FaCheckCircle color="green" />
                                   ) : (
-                                    s.icon
-                                  )}
-                                </div>
-                                <div style={{ fontSize: 13 }}>{s.label}</div>
-                                {/* Progress underline for completed steps */}
-                                {idx < timelineIdx && (
+                                    // Use a filled dot or colored icon for current step
+                                    <span
+                                      style={{
+                                        display: "inline-block",
+                                        width: 16,
+                                        height: 16,
+                                        borderRadius: "50%",
+                                        background: "#1976d2",
+                                        border: "2px solid #1976d2",
+                                        marginBottom: 2,
+                                      }}
+                                    ></span>
+                                  );
+                                color = "#1976d2";
+                              } else {
+                                // Future
+                                icon = (
+                                  <span
+                                    style={{
+                                      display: "inline-block",
+                                      width: 16,
+                                      height: 16,
+                                      borderRadius: "50%",
+                                      background: "#eee",
+                                      border: "2px solid #bbb",
+                                      marginBottom: 2,
+                                    }}
+                                  ></span>
+                                );
+                                color = "#bbb";
+                              }
+                              return (
+                                <div
+                                  key={s.key}
+                                  className="text-center flex-grow-1"
+                                  style={{
+                                    color,
+                                    fontWeight: idx === timelineIdx ? 700 : 400,
+                                  }}
+                                >
                                   <div
                                     style={{
-                                      position: "absolute",
-                                      bottom: -2,
-                                      left: 0,
-                                      right: 0,
-                                      height: 3,
-                                      background: "#1976d2",
+                                      display: "flex",
+                                      justifyContent: "center",
                                     }}
-                                  />
-                                )}
-                              </div>
-                            ))}
+                                  >
+                                    {icon}
+                                  </div>
+                                  <div
+                                    style={{
+                                      fontSize: 13,
+                                      fontWeight:
+                                        idx === timelineIdx ? "bold" : "normal",
+                                      marginTop: 2,
+                                    }}
+                                  >
+                                    {s.label}
+                                  </div>
+                                </div>
+                              );
+                            })}
                           </div>
                           {extraStatus && (
                             <Badge bg={extraStatus.badgeBg} className="ms-2">
@@ -385,7 +521,10 @@ const Dashboard = () => {
                           </div>
                           <div style={{ fontSize: "0.98rem", color: "#444" }}>
                             <span>
-                              Placed: <span style={{ color: "#333" }}>{placedDate || "N/A"}</span>
+                              Placed:{" "}
+                              <span style={{ color: "#333" }}>
+                                {placedDate || "N/A"}
+                              </span>
                             </span>
                           </div>
                           {order.items &&
@@ -404,12 +543,19 @@ const Dashboard = () => {
                                     >
                                       {item.name ? item.name : "Item"}{" "}
                                       {item.qty && (
-                                        <Badge bg="secondary" pill className="ms-1">
+                                        <Badge
+                                          bg="secondary"
+                                          pill
+                                          className="ms-1"
+                                        >
                                           x{item.qty}
                                         </Badge>
                                       )}
                                       {item.price && (
-                                        <span className="ms-2" style={{ color: "#06a" }}>
+                                        <span
+                                          className="ms-2"
+                                          style={{ color: "#06a" }}
+                                        >
                                           {item.price}
                                         </span>
                                       )}
@@ -424,7 +570,11 @@ const Dashboard = () => {
                               variant="outline-danger"
                               disabled={!allowCancel || actionLoading}
                               onClick={() =>
-                                setModal({ show: true, type: "cancel", orderId: order.id })
+                                setModal({
+                                  show: true,
+                                  type: "cancel",
+                                  orderId: order.id,
+                                })
                               }
                             >
                               <FaTimesCircle className="mb-1" /> Cancel Order
@@ -439,7 +589,11 @@ const Dashboard = () => {
                                 order.status === "cancelRequested"
                               }
                               onClick={() =>
-                                setModal({ show: true, type: "return", orderId: order.id })
+                                setModal({
+                                  show: true,
+                                  type: "return",
+                                  orderId: order.id,
+                                })
                               }
                             >
                               <FaUndo className="mb-1" /> Request Return
@@ -499,8 +653,23 @@ const Dashboard = () => {
             variant={modal.type === "cancel" ? "danger" : "warning"}
             onClick={() => handleAction(modal.orderId, modal.type)}
             disabled={actionLoading}
+            aria-label="Confirm Action"
           >
-            {actionLoading ? "Processing..." : "Confirm"}
+            {/* 11. Spinner in Confirm button */}
+            {actionLoading ? (
+              <>
+                <Spinner
+                  as="span"
+                  animation="border"
+                  size="sm"
+                  role="status"
+                  aria-hidden="true"
+                />{" "}
+                Processing...
+              </>
+            ) : (
+              "Confirm"
+            )}
           </Button>
         </Modal.Footer>
       </Modal>
