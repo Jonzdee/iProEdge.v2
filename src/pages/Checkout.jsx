@@ -50,9 +50,12 @@ const Checkout = () => {
   const [addressChanged, setAddressChanged] = useState(false);
   const dispatch = useDispatch();
   const { cartList } = useSelector((state) => state.cart);
-  const totalPrice = cartList.reduce((price, item) => price + item.qty * item.price, 0);
+  const totalPrice = cartList.reduce(
+    (price, item) => price + item.qty * item.price,
+    0
+  );
   const defaultDeliveryFee = 1000;
-  const promo = 299;
+  const promo = 100;
 
   const [step, setStep] = useState(1);
   const [deliveryType, setDeliveryType] = useState("");
@@ -99,7 +102,9 @@ const Checkout = () => {
     }
   };
   const handlePickupStation = (e) => {
-    const selected = PICKUP_STATIONS.find((station) => station.name === e.target.value);
+    const selected = PICKUP_STATIONS.find(
+      (station) => station.name === e.target.value
+    );
     setPickupStation(selected ? selected.name : "");
     setPickupFee(selected ? selected.fee : 0);
     setDeliveryChanged(true);
@@ -153,95 +158,99 @@ const Checkout = () => {
       : 0;
 
   // Order POST logic (robust, secure, no duplicates)
- const handleConfirmOrder = async () => {
-  if (orderLoading || hasPostedOrder.current) return; // Prevent double submit
-  setOrderConfirmed(true);
-  setOrderLoading(true);
-  setOrderError("");
-  hasPostedOrder.current = true;
+  const handleConfirmOrder = async () => {
+    if (orderLoading || hasPostedOrder.current) return; // Prevent double submit
+    setOrderConfirmed(true);
+    setOrderLoading(true);
+    setOrderError("");
+    hasPostedOrder.current = true;
 
-  // Enforce required fields
-  if (deliveryType === "pickup" && !pickupStation) {
-    setOrderError("Please select a pickup station for pickup delivery.");
-    setOrderLoading(false);
-    setOrderConfirmed(false);
-    hasPostedOrder.current = false;
-    return;
-  }
-  if (deliveryType === "door" && !userInfo.address.trim()) {
-    setOrderError("Please enter a delivery address for doorstep delivery.");
-    setOrderLoading(false);
-    setOrderConfirmed(false);
-    hasPostedOrder.current = false;
-    return;
-  }
-
-  try {
-    if (!user || !user.getIdToken) {
-      setOrderError("You must be logged in to place an order.");
+    // Enforce required fields
+    if (deliveryType === "pickup" && !pickupStation) {
+      setOrderError("Please select a pickup station for pickup delivery.");
       setOrderLoading(false);
       setOrderConfirmed(false);
       hasPostedOrder.current = false;
       return;
     }
-    const token = await user.getIdToken();
-    const orderPayload = {
-      userId: user.uid,
-      userName: user.displayName || user.email,
-      userEmail: user.email,
-      items: cartList,
-      orderTotal: totalPrice + currentDeliveryFee - promo,
-      paymentMethod,
-      address: userInfo.address,
-      name: userInfo.name,
-      phone: userInfo.phone,
-      deliveryType,
-      pickupStation,
-      promo,
-      status: "pending",
-      clientOrderId: uuidv4(), 
-    };
-    console.log("Order Payload:", orderPayload); // Debug: Check values
+    if (deliveryType === "door" && !userInfo.address.trim()) {
+      setOrderError("Please enter a delivery address for doorstep delivery.");
+      setOrderLoading(false);
+      setOrderConfirmed(false);
+      hasPostedOrder.current = false;
+      return;
+    }
 
-    const response = await fetch("https://iproedgeback.onrender.com/order", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify(orderPayload),
-    });
-    const data = await response.json();
-    setOrderLoading(false);
-    if (data.success) {
-      dispatch(clearCart());
-      localStorage.removeItem("cartList");
-      navigate("/checkout/success", {
-        state: {
-          cartItems: cartList,
-          paymentMethod,
-          orderTotal: (totalPrice + currentDeliveryFee - promo).toLocaleString(),
-          address: userInfo.address,
-          name: userInfo.name,
-          phone: userInfo.phone,
-          deliveryType,
-          pickupStation,
-          promo,
-          orderId: data.orderId,
+    try {
+      if (!user || !user.getIdToken) {
+        setOrderError("You must be logged in to place an order.");
+        setOrderLoading(false);
+        setOrderConfirmed(false);
+        hasPostedOrder.current = false;
+        return;
+      }
+      const token = await user.getIdToken();
+      const orderPayload = {
+        userId: user.uid,
+        userName: user.displayName || user.email,
+        userEmail: user.email,
+        items: cartList,
+        orderTotal: totalPrice + currentDeliveryFee - promo,
+        paymentMethod,
+        address: userInfo.address,
+        name: userInfo.name,
+        phone: userInfo.phone,
+        deliveryType,
+        pickupStation,
+        promo,
+        status: "pending",
+        clientOrderId: uuidv4(),
+      };
+      console.log("Order Payload:", orderPayload); // Debug: Check values
+
+      const response = await fetch("https://iproedgeback.onrender.com/order", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
         },
+        body: JSON.stringify(orderPayload),
       });
-    } else {
-      setOrderError(data.error || "Order failed. Please try again.");
+      const data = await response.json();
+      setOrderLoading(false);
+      if (data.success) {
+        dispatch(clearCart());
+        localStorage.removeItem("cartList");
+        navigate("/checkout/success", {
+          state: {
+            cartItems: cartList,
+            paymentMethod,
+            orderTotal: (
+              totalPrice +
+              currentDeliveryFee -
+              promo
+            ).toLocaleString(),
+            address: userInfo.address,
+            name: userInfo.name,
+            phone: userInfo.phone,
+            deliveryType,
+            pickupStation,
+            promo,
+            orderId: data.orderId,
+          },
+        });
+      } else {
+        setOrderError(data.error || "Order failed. Please try again.");
+        setOrderConfirmed(false);
+        hasPostedOrder.current = false;
+      }
+    } catch (err) {
+      setOrderLoading(false);
+      setOrderError(err.message || "Network error. Please try again.");
       setOrderConfirmed(false);
       hasPostedOrder.current = false;
     }
-  } catch (err) {
-    setOrderLoading(false);
-    setOrderError(err.message || "Network error. Please try again.");
-    setOrderConfirmed(false);
-    hasPostedOrder.current = false;
-  }
-};
+  };
 
   return (
     <section style={{ background: "#f6f9fc", minHeight: "100vh", padding: 0 }}>
@@ -612,11 +621,30 @@ const Checkout = () => {
                       type="radio"
                       id={mtd.value}
                       name="paymentMethod"
-                      label={mtd.label}
+                      label={
+                        <>
+                          {mtd.label}
+                          {(mtd.value === "paystack" ||
+                            mtd.value === "debitcard") && (
+                            <span
+                              style={{
+                                color: "#c00",
+                                marginLeft: 8,
+                                fontSize: 12,
+                              }}
+                            >
+                              (Currently unavailable)
+                            </span>
+                          )}
+                        </>
+                      }
                       value={mtd.value}
                       checked={paymentMethod === mtd.value}
                       onChange={(e) => setPaymentMethod(e.target.value)}
                       style={{ marginBottom: 10 }}
+                      disabled={
+                        mtd.value === "paystack" || mtd.value === "debitcard"
+                      }
                     />
                   ))}
                 </Form>
@@ -631,8 +659,16 @@ const Checkout = () => {
                 &larr; Go back &amp; continue shopping
               </Button>
             </div>
-            {orderLoading && <Alert className="mt-3" variant="info">Placing order...</Alert>}
-            {orderError && <Alert className="mt-3" variant="danger">{orderError}</Alert>}
+            {orderLoading && (
+              <Alert className="mt-3" variant="info">
+                Placing order...
+              </Alert>
+            )}
+            {orderError && (
+              <Alert className="mt-3" variant="danger">
+                {orderError}
+              </Alert>
+            )}
           </Col>
 
           {/* Order Summary */}
@@ -668,7 +704,7 @@ const Checkout = () => {
                   className="d-flex justify-content-between mb-2"
                   style={{ color: "#00b060" }}
                 >
-                  <span>Get 10% Off Our Elegant, Comfy & Fast Collections</span>
+                  <span>Promo Discount</span>
                   <span>-₦ {promo.toLocaleString()}</span>
                 </div>
                 <hr />

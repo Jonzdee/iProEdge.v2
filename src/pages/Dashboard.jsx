@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import Loader from "../components/Loader";
+import OrderTimeline from "../components/OrderTimeline"
 import {
   Container,
   Row,
@@ -25,6 +26,7 @@ import {
   FaHeadset,
 } from "react-icons/fa";
 import jsPDF from "jspdf";
+
 
 const TIMELINE_STATUSES = [
   { key: "processing", label: "Processing", icon: <FaRegClock color="#888" /> },
@@ -119,41 +121,41 @@ const Dashboard = () => {
   }, [feedback]);
 
   // Fetch orders from backend API with authentication
-  const fetchOrders = () => {
-    if (!user) return;
-    setLoading(true);
-    user.getIdToken().then((token) => {
-      fetch(
-        `https://iproedgeback.onrender.com/orders?userEmail=${encodeURIComponent(
-          user.email
-        )}`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      )
-        .then((res) => res.json())
-        .then((data) => {
-          setOrders(data.success ? data.orders : []);
-          setLoading(false);
-          if (!data.success) {
-            setFeedback({
-              show: true,
-              variant: "danger",
-              message: data.error || "Failed to load orders.",
-            });
-          }
-        })
-        .catch((error) => {
+const fetchOrders = () => {
+  if (!user) return;
+  setLoading(true);
+  user.getIdToken().then((token) => {
+    fetch(
+      `https://iproedgeback.onrender.com/orders?userEmail=${encodeURIComponent(user.email)}`,
+      {
+        headers: { Authorization: `Bearer ${token}` },
+      }
+    )
+      .then((res) => res.json())
+      .then((data) => {
+        // Always create a new array reference!
+        const newOrders = data.success ? [...data.orders] : [];
+        setOrders(newOrders);
+        setLoading(false);
+        if (!data.success) {
           setFeedback({
             show: true,
             variant: "danger",
-            message: "Failed to load orders: " + error.message,
+            message: data.error || "Failed to load orders.",
           });
-          setLoading(false);
+        }
+        console.log("Fetched Orders:", newOrders);
+      })
+      .catch((error) => {
+        setFeedback({
+          show: true,
+          variant: "danger",
+          message: "Failed to load orders: " + error.message,
         });
-    });
-  };
-
+        setLoading(false);
+      });
+  });
+};
   // user becomes null (user logs out), so you clear orders and feedback immediately.
   useEffect(() => {
     if (!user) {
@@ -165,9 +167,7 @@ const Dashboard = () => {
     fetchOrders();
   }, [user]);
 
-  useEffect(() => {
-    fetchOrders();
-  }, [user]);
+   
 
   const handleAction = async (orderId, type) => {
     setActionLoading(true);
@@ -277,6 +277,8 @@ const Dashboard = () => {
   };
 
   if (!user)
+
+    
     return (
       <Container className="py-5">
         <Alert variant="warning" className="text-center">
@@ -286,6 +288,7 @@ const Dashboard = () => {
     );
 
   if (loading) return <Loader text="Loading your orders..." />;
+  
 
   return (
     <Container className="py-5">
@@ -397,92 +400,8 @@ const Dashboard = () => {
                             </Badge>
                           </Card.Title>
                           {/* Timeline Bar */}
-                          <div
-                            className="mb-2"
-                            style={{
-                              display: "flex",
-                              alignItems: "center",
-                              justifyContent: "space-between",
-                              marginLeft: 1,
-                              minHeight: 56,
-                            }}
-                          >
-                            {TIMELINE_STATUSES.map((s, idx) => {
-                              // Determine the step state
-                              let icon;
-                              let color;
-                              if (idx < timelineIdx) {
-                                // Completed
-                                icon = <FaCheckCircle color="#1976d2" />;
-                                color = "#1976d2";
-                              } else if (idx === timelineIdx) {
-                                // Current
-                                icon =
-                                  s.key === "delivered" ? (
-                                    <FaCheckCircle color="green" />
-                                  ) : (
-                                    // Use a filled dot or colored icon for current step
-                                    <span
-                                      style={{
-                                        display: "inline-block",
-                                        width: 16,
-                                        height: 16,
-                                        borderRadius: "50%",
-                                        background: "#1976d2",
-                                        border: "2px solid #1976d2",
-                                        marginBottom: 2,
-                                      }}
-                                    ></span>
-                                  );
-                                color = "#1976d2";
-                              } else {
-                                // Future
-                                icon = (
-                                  <span
-                                    style={{
-                                      display: "inline-block",
-                                      width: 16,
-                                      height: 16,
-                                      borderRadius: "50%",
-                                      background: "#eee",
-                                      border: "2px solid #bbb",
-                                      marginBottom: 2,
-                                    }}
-                                  ></span>
-                                );
-                                color = "#bbb";
-                              }
-                              return (
-                                <div
-                                  key={s.key}
-                                  className="text-center flex-grow-1"
-                                  style={{
-                                    color,
-                                    fontWeight: idx === timelineIdx ? 700 : 400,
-                                  }}
-                                >
-                                  <div
-                                    style={{
-                                      display: "flex",
-                                      justifyContent: "center",
-                                    }}
-                                  >
-                                    {icon}
-                                  </div>
-                                  <div
-                                    style={{
-                                      fontSize: 13,
-                                      fontWeight:
-                                        idx === timelineIdx ? "bold" : "normal",
-                                      marginTop: 2,
-                                    }}
-                                  >
-                                    {s.label}
-                                  </div>
-                                </div>
-                              );
-                            })}
-                          </div>
+                          <OrderTimeline statuses={TIMELINE_STATUSES} currentIdx={getTimelineStatusIndex(order.status)} />
+
                           {extraStatus && (
                             <Badge bg={extraStatus.badgeBg} className="ms-2">
                               {extraStatus.label}

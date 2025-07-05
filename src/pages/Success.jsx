@@ -8,6 +8,7 @@ import {
   Modal,
   Form,
   Alert,
+  Spinner,
 } from "react-bootstrap";
 import { useLocation, useNavigate } from "react-router-dom";
 import {
@@ -52,6 +53,10 @@ export default function Success() {
   const [orderError, setOrderError] = useState("");
   const [orderLoading, setOrderLoading] = useState(false);
 
+  // Automated payment status
+  const [palmpayWaiting, setPalmpayWaiting] = useState(false);
+  const [palmpayPaid, setPalmpayPaid] = useState(false);
+
   // Prevent duplicate order submission
   const hasPostedOrder = useRef(false);
 
@@ -61,11 +66,6 @@ export default function Success() {
       navigate("/cart");
     }
   }, [cartItems, navigate]);
-
-  const handleNotifyPaid = () => {
-    alert("Thank you! We will verify your payment and process your order shortly.");
-    // Optionally send a notification to your backend here
-  };
 
   // Send order to backend (prevents double POST)
   useEffect(() => {
@@ -147,6 +147,27 @@ export default function Success() {
       setShowCard(false);
     }, 1200);
   };
+
+  // PALMPAY: Poll for payment confirmation (automation)
+  useEffect(() => {
+    if (paymentMethod !== "palmpay" || !orderId) return;
+    setPalmpayWaiting(true);
+    setPalmpayPaid(false);
+    const interval = setInterval(async () => {
+      try {
+        const res = await fetch(`https://iproedgeback.onrender.com/order-status/${orderId}`);
+        const data = await res.json();
+        if (data.status === "paid") {
+          setPalmpayWaiting(false);
+          setPalmpayPaid(true);
+          clearInterval(interval);
+        }
+      } catch (err) {
+        // You may want to show an error to the user
+      }
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [paymentMethod, orderId]);
 
   return (
     <div
@@ -249,7 +270,9 @@ export default function Success() {
                   {paymentMethod === "cod"
                     ? "Order Placed!"
                     : paymentMethod === "palmpay"
-                    ? "Complete Your Palmpay Payment"
+                    ? palmpayPaid
+                      ? "Payment Received!"
+                      : "Complete Your Palmpay Payment"
                     : "Order Placed!"}
                 </h3>
                 <div
@@ -317,39 +340,26 @@ export default function Success() {
                     >
                       <b>{customer.palmpay}</b>
                     </Alert>
-                    <div style={{ fontSize: "0.98rem", marginBottom: 8 }}>
-                      After payment, call <b>{customer.phone}</b> to confirm and
-                      track your order.
-                    </div>
-                    <Button
-                      variant="outline-primary"
-                      size="sm"
-                      onClick={() => window.open(`tel:${customer.phone}`)}
-                      className="mb-2"
-                    >
-                      <FaPhoneAlt /> Call Now
-                    </Button>
-                    <div
-                      style={{
-                        color: "#c00",
-                        fontWeight: 500,
-                        marginTop: 14,
-                        fontSize: "0.97rem",
-                      }}
-                    >
-                      <b>Note:</b> If payment is not made within 24 hours, your
-                      order will be cancelled automatically.
-                    </div>
-                    <div style={{ marginTop: 10 }}>
-                      Already paid?{" "}
-                      <Button
-                        size="sm"
-                        variant="outline-success"
-                        onClick={handleNotifyPaid}
-                      >
-                        I have paid
-                      </Button>
-                    </div>
+                    {palmpayPaid ? (
+                      <div className="text-success mb-3" style={{ fontWeight: 600, fontSize: "1.07rem" }}>
+                        Payment received! Your order will be processed shortly.
+                      </div>
+                    ) : palmpayWaiting ? (
+                      <div>
+                        <div className="mb-3">
+                          <Spinner animation="border" size="sm" />{" "}
+                          <span style={{ fontWeight: 500 }}>
+                            Waiting for payment confirmation...
+                          </span>
+                          <div style={{ fontSize: ".97rem" }} className="mt-2">
+                            Your order will be confirmed automatically as soon as your Palmpay transfer is received. <br />
+                            <span style={{ color: "#c00" }}>
+                              <b>Note:</b> If payment is not made within 24 hours, your order will be cancelled automatically.
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    ) : null}
                   </div>
                 )}
 
