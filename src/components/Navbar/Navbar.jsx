@@ -49,8 +49,11 @@ const NavBar = () => {
   // Sign out function
   const handleSignOut = async () => {
     await signOut(auth);
-    // Optionally, redirect or give feedback
+    setExpand(false); // Close navbar on sign out
   };
+  
+  // Helper to handle nav link click (auto close/collapse)
+  const handleNavLinkClick = () => setExpand(false);
 
   // Avatar Dropdown (for both mobile and desktop)
   const avatarDropdown = (
@@ -74,7 +77,7 @@ const NavBar = () => {
           {displayName}
         </Dropdown.Header>
         <Dropdown.Divider />
-        <Dropdown.Item as={Link} to="/dashboard">
+        <Dropdown.Item as={Link} to="/dashboard" onClick={handleNavLinkClick}>
           Dashboard
         </Dropdown.Item>
         <Dropdown.Divider />
@@ -90,10 +93,12 @@ const NavBar = () => {
       <Navbar
         fixed="top"
         expand="md"
+        expanded={expand}
+        onToggle={(expanded) => setExpand(expanded)}
         className={isFixed ? "navbar fixed" : "navbar"}
       >
         <Container className="navbar-container">
-          <Navbar.Brand as={Link} to="/">
+          <Navbar.Brand as={Link} to="/" onClick={handleNavLinkClick}>
             <ion-icon name="bag"></ion-icon>
             <h1 className="logo">iproedge</h1>
           </Navbar.Brand>
@@ -134,6 +139,7 @@ const NavBar = () => {
               className="cart"
               data-num={cartList.length}
               style={{ marginLeft: 4 }}
+              onClick={handleNavLinkClick}
             >
               <svg
                 xmlns="http://www.w3.org/2000/svg"
@@ -147,7 +153,7 @@ const NavBar = () => {
             </Link>
             <Navbar.Toggle
               aria-controls="basic-navbar-nav"
-              onClick={() => setExpand(expand ? false : "expanded")}
+              onClick={() => setExpand(!expand)}
               className="ms-2"
             >
               <span></span>
@@ -159,23 +165,23 @@ const NavBar = () => {
           <Navbar.Collapse id="basic-navbar-nav">
             <Nav className="justify-content-end flex-grow-1 pe-3">
               <Nav.Item>
-                <Link className="navbar-link" to="/" onClick={() => setExpand(false)}>
+                <Link className="navbar-link" to="/" onClick={handleNavLinkClick}>
                   <span className="nav-link-label">Home</span>
                 </Link>
               </Nav.Item>
               <Nav.Item>
-                <Link className="navbar-link" to="/shop" onClick={() => setExpand(false)}>
+                <Link className="navbar-link" to="/shop" onClick={handleNavLinkClick}>
                   <span className="nav-link-label">Shop</span>
                 </Link>
               </Nav.Item>
               <Nav.Item>
-                <Link className="navbar-link" to="/cart" onClick={() => setExpand(false)}>
+                <Link className="navbar-link" to="/cart" onClick={handleNavLinkClick}>
                   <span className="nav-link-label">Cart</span>
                 </Link>
               </Nav.Item>
               {user && (
                 <Nav.Item>
-                  <Link className="navbar-link" to="/dashboard" onClick={() => setExpand(false)}>
+                  <Link className="navbar-link" to="/dashboard" onClick={handleNavLinkClick}>
                     <span className="nav-link-label">Dashboard</span>
                   </Link>
                 </Nav.Item>
@@ -216,6 +222,7 @@ const NavBar = () => {
                   className="cart"
                   data-num={cartList.length}
                   style={{ marginLeft: 4 }}
+                  onClick={handleNavLinkClick}
                 >
                   <svg
                     xmlns="http://www.w3.org/2000/svg"

@@ -357,7 +357,7 @@ button.delete ion-icon {
   }
 }
 .custom-dark-blue {
-    background-color: #0b203a !important; /* Dark Blue */
+    background-color: linear-gradient(45deg, #007bff, #0056b3) !important; /* Dark Blue */
     color: #fff; /* White Text */
     border: none !important;
     font-weight: bold !important;

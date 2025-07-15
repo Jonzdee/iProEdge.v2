@@ -16,13 +16,10 @@ const Product = () => {
   const [relatedProducts, setRelatedProducts] = useState([]);
 
   useEffect(() => {
-    console.log("Route ID from URL:", id); // Debug: Check the id from the route
-    console.log("All products fetched from Sanity:", products.map((prod) => prod.id)); // Debug: Log all fetched products
-
+    
     // Match the product based on the route `id`
     const prod = products.find((item) => String(item.id) === String(id));
-    console.log("Matched Product:", prod); // Debug: Log the matched product
-
+   
     setSelectedProduct(prod);
 
     if (prod) {
@@ -31,7 +28,6 @@ const Product = () => {
         (item) =>
           item.category === prod.category && String(item.id) !== String(prod.id)
       );
-      console.log("Related Products:", related); // Debug: Log related products
       setRelatedProducts(related);
     }
 

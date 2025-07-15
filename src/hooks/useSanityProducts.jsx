@@ -26,7 +26,7 @@ export function useSanityProducts() {
         avgRating
       }`)
       .then((data) => {
-        console.log('Raw Sanity data:', data);
+        
         const formattedData = data.map((prod) => ({
           ...prod,
           id: prod._id,
@@ -38,7 +38,7 @@ export function useSanityProducts() {
             : [],
         }));
         setProducts(formattedData);
-        console.log('Formatted products:', formattedData);
+      
         setLoading(false);
       })
       .catch((err) => {

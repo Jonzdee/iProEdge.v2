@@ -144,7 +144,7 @@ const fetchOrders = () => {
             message: data.error || "Failed to load orders.",
           });
         }
-        console.log("Fetched Orders:", newOrders);
+        
       })
       .catch((error) => {
         setFeedback({
@@ -234,8 +234,6 @@ const fetchOrders = () => {
     docPdf.text(`Payment Method: ${order.paymentMethod}`, 14, 52);
     docPdf.text(`Status: ${order.status}`, 14, 60);
 
-    // Debug line:
-    console.log("order.timestamp", order.timestamp, typeof order.timestamp);
 
     // Robust timestamp handling
     let orderDateStr = "N/A";

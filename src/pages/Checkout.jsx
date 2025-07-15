@@ -206,7 +206,7 @@ const Checkout = () => {
         status: "pending",
         clientOrderId: uuidv4(),
       };
-      console.log("Order Payload:", orderPayload); // Debug: Check values
+  
 
       const response = await fetch("https://iproedgeback.onrender.com/order", {
         method: "POST",
