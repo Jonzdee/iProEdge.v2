@@ -89,25 +89,6 @@ export default function Success() {
   };
 
   // PALMPAY: Poll for payment confirmation (automation)
-  useEffect(() => {
-    if (paymentMethod !== "palmpay" || !orderId) return;
-    setPalmpayWaiting(true);
-    setPalmpayPaid(false);
-    const interval = setInterval(async () => {
-      try {
-        const res = await fetch(`https://iproedgeback.onrender.com/order-status/${orderId}`);
-        const data = await res.json();
-        if (data.status === "paid") {
-          setPalmpayWaiting(false);
-          setPalmpayPaid(true);
-          clearInterval(interval);
-        }
-      } catch (err) {
-        // You may want to show an error to the user
-      }
-    }, 5000);
-    return () => clearInterval(interval);
-  }, [paymentMethod, orderId]);
 
   return (
     <div
