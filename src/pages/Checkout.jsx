@@ -22,11 +22,37 @@ import { clearCart } from "../app/features/cart/cartSlice";
 import { useAuth } from "../context/AuthContext"; // <-- Make sure this exists and provides user
 
 const PICKUP_STATIONS = [
-  { name: "Ikoro Garage", fee: 600 },
-  { name: "First Gate LasusTech", fee: 100 },
-  { name: "Odogunyan", fee: 0 },
-  { name: "Itaoluwo", fee: 100 },
+  { name: "Ikorodu Garage", fee: 600 },
+  { name: "First Gate LasusTech", fee: 200 },
+  { name: "Odogunyan", fee: 100 },
+  { name: "Itaoluwo", fee: 200 },
   { name: "Ogijo", fee: 600 },
+  { name: "Agric", fee: 800 },
+  { name: "Itamaga", fee: 500 },
+  { name: "Sabo", fee: 500 },
+  { name: "Ebute", fee: 800 },
+  { name: "Ijede Garage", fee: 1100 },
+  { name: "Ipakodo", fee: 800 },
+  { name: "Owutu", fee: 400 },
+  { name: "Igbogbo", fee: 1100 },
+  { name: "Isawo", fee: 400 },
+  { name: "Gbaga", fee: 500 },
+  { name: "Majidun", fee: 1200 },
+  { name: "Ogolonto", fee: 700 },
+  { name: "Bayeku", fee: 1800 },
+  { name: "Agbede", fee: 900 },
+  { name: "Solomade", fee: 800 },
+  { name: "Itokin", fee: 1500 },
+  { name: "Adamo", fee: 500 },
+  { name: "Gberigbe", fee: 1500 },
+  { name: "Ishawo Agric Axis", fee: 850 },
+  { name: "Oke Ota Ona", fee: 800 },
+  { name: "Oreyo", fee: 700 },
+  { name: "Erunwen", fee: 650 },
+  { name: "Abule Eko", fee: 650 },
+  { name: "Itunmaja", fee: 500 },
+  { name: "Lucky Fibre", fee: 800 },
+  { name: "Oba's Palace (Ikorodu Central)", fee: 700 },
 ];
 
 const PAYMENT_METHODS = [
@@ -40,6 +66,8 @@ const initialUser = {
   name: "",
   address: "",
   phone: "",
+  busStop: "",
+  landmark: "",
 };
 
 const Checkout = () => {
@@ -54,7 +82,7 @@ const Checkout = () => {
     (price, item) => price + item.qty * item.price,
     0
   );
-  const defaultDeliveryFee = 1000;
+
   const promo = 100;
 
   const [step, setStep] = useState(1);
@@ -148,13 +176,21 @@ const Checkout = () => {
     step === 2 &&
     (deliveryType === "door" || (deliveryType === "pickup" && pickupStation));
   const canConfirmOrder = step === 3 && paymentMethod;
+
+  // Find the station by name (bus stop)
+  const selectedBusStop = PICKUP_STATIONS.find(
+    (station) => station.name === userInfo.busStop
+  );
+
   const currentDeliveryFee =
     deliveryType === "pickup"
       ? pickupStation
         ? pickupFee
         : 0
       : deliveryType === "door"
-      ? defaultDeliveryFee
+      ? selectedBusStop
+        ? selectedBusStop.fee + 500 // ADD ₦500 for door delivery
+        : 0
       : 0;
 
   // Order POST logic (robust, secure, no duplicates)
@@ -180,6 +216,13 @@ const Checkout = () => {
       hasPostedOrder.current = false;
       return;
     }
+    if (deliveryType === "door" && !userInfo.busStop) {
+      setOrderError("Please select your nearest bus stop for door delivery.");
+      setOrderLoading(false);
+      setOrderConfirmed(false);
+      hasPostedOrder.current = false;
+      return;
+    }
 
     try {
       if (!user || !user.getIdToken) {
@@ -198,6 +241,8 @@ const Checkout = () => {
         orderTotal: totalPrice + currentDeliveryFee - promo,
         paymentMethod,
         address: userInfo.address,
+        landmark: userInfo.landmark,
+        busStop: userInfo.busStop,
         name: userInfo.name,
         phone: userInfo.phone,
         deliveryType,
@@ -206,7 +251,6 @@ const Checkout = () => {
         status: "pending",
         clientOrderId: uuidv4(),
       };
-  
 
       const response = await fetch("https://iproedgeback.onrender.com/order", {
         method: "POST",
@@ -269,6 +313,7 @@ const Checkout = () => {
                 onChange={handleAddressChange}
               />
             </Form.Group>
+
             <Form.Group className="mb-2">
               <Form.Label>Phone Number</Form.Label>
               <Form.Control
@@ -277,8 +322,9 @@ const Checkout = () => {
                 onChange={handleAddressChange}
               />
             </Form.Group>
+
             <Form.Group className="mb-2">
-              <Form.Label>Delivery Address</Form.Label>
+              <Form.Label>Delivery Address (Street & House No.)</Form.Label>
               <Form.Control
                 as="textarea"
                 name="address"
@@ -287,6 +333,35 @@ const Checkout = () => {
                 onChange={handleAddressChange}
               />
             </Form.Group>
+
+            {/* NEW: Landmark */}
+            <Form.Group className="mb-2">
+              <Form.Label>Landmark (Optional)</Form.Label>
+              <Form.Control
+                name="landmark"
+                value={addressForm.landmark}
+                onChange={handleAddressChange}
+                placeholder="e.g. Opposite Total Filling Station"
+              />
+            </Form.Group>
+
+            {/* NEW: Bus Stop Dropdown */}
+            <Form.Group className="mb-2">
+              <Form.Label>Nearest Bus Stop</Form.Label>
+              <Form.Select
+                name="busStop"
+                value={addressForm.busStop}
+                onChange={handleAddressChange}
+              >
+                <option value="">-- Select Bus Stop --</option>
+                {PICKUP_STATIONS.map((station) => (
+                  <option key={station.name} value={station.name}>
+                    {station.name} (₦{station.fee})
+                  </option>
+                ))}
+              </Form.Select>
+            </Form.Group>
+
             <Button className="w-100 mt-3" onClick={saveNewAddress}>
               Save Address
             </Button>
@@ -511,11 +586,14 @@ const Checkout = () => {
                       <>
                         <FaTruck className="me-2" /> Door Delivery{" "}
                         <span style={{ color: "#888" }}>
-                          (₦{defaultDeliveryFee})
+                          {selectedBusStop
+                            ? `(₦${selectedBusStop.fee + 500})`
+                            : "(Select bus stop to see fee)"}
                         </span>
                       </>
                     }
                   />
+
                   {deliveryType === "door" && (
                     <div style={{ marginTop: 10 }}>
                       <Row>
@@ -696,7 +774,9 @@ const Checkout = () => {
                         ? "Free"
                         : `₦${pickupFee}`
                       : deliveryType === "door"
-                      ? `₦${defaultDeliveryFee}`
+                      ? selectedBusStop
+                        ? `₦${selectedBusStop.fee + 500}`
+                        : "--"
                       : "--"}
                   </span>
                 </div>
