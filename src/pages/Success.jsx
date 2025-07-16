@@ -18,7 +18,6 @@ import {
   FaMoneyBillWave,
 } from "react-icons/fa";
 import { useAuth } from "../context/AuthContext";
-import { v4 as uuidv4 } from "uuid";
 
 export default function Success() {
   const location = useLocation();
@@ -49,9 +48,8 @@ export default function Success() {
   const [cardSuccess, setCardSuccess] = useState(false);
 
   // Order submission states
-  const [orderId, setOrderId] = useState(
-    () => localStorage.getItem("orderId") || null
-  );
+  const [orderId] = useState(location.state?.orderId || null);
+
   const [orderError, setOrderError] = useState("");
   const [orderLoading, setOrderLoading] = useState(false);
 
