@@ -57,9 +57,7 @@ export default function Success() {
   const [palmpayWaiting, setPalmpayWaiting] = useState(false);
   const [palmpayPaid, setPalmpayPaid] = useState(false);
 
-  // Prevent duplicate order submission
-  const hasPostedOrder = useRef(false);
-
+ 
   // Redirect if cart is empty
   useEffect(() => {
     if (!cartItems.length) {
@@ -67,65 +65,7 @@ export default function Success() {
     }
   }, [cartItems, navigate]);
 
-  // Send order to backend (prevents double POST)
-  useEffect(() => {
-    // If orderId is already in localStorage, don't send again
-    if (!user || !cartItems.length || orderId || orderLoading || hasPostedOrder.current) return;
-
-    hasPostedOrder.current = true; // Prevent double submit
-
-    const submitOrder = async () => {
-      setOrderLoading(true);
-      setOrderError("");
-      try {
-        if (!user.getIdToken) {
-          setOrderError("User not authenticated.");
-          setOrderLoading(false);
-          return;
-        }
-        const token = await user.getIdToken();
-
-        const orderData = {
-          userId: user.uid,
-          userName: user.displayName || user.email,
-          userEmail: user.email,
-          orderTotal,
-          paymentMethod,
-          cartItems,
-          status: "success",
-          clientOrderId: uuidv4(),
-        };
-
-        const res = await fetch("https://iproedgeback.onrender.com/order", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify(orderData),
-        });
-
-        const data = await res.json();
-
-        setOrderLoading(false);
-        if (data.success) {
-          setOrderId(data.orderId);
-          localStorage.removeItem("cartList");
-          localStorage.setItem("orderId", data.orderId); // Save orderId to localStorage
-        } else {
-          setOrderError(data.error || "Order failed");
-        }
-      } catch (err) {
-        setOrderLoading(false);
-        setOrderError(err.message || "Network error");
-        console.error("Order submission error:", err);
-      }
-    };
-
-    submitOrder();
-    // eslint-disable-next-line
-  }, [user, cartItems, orderTotal, paymentMethod, orderId, orderLoading]);
-
+  
   useEffect(() => {
     if (paymentMethod === "paystack") setShowPaystack(true);
     if (paymentMethod === "debitcard") setShowCard(true);

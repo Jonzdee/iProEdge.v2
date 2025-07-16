@@ -1,14 +1,24 @@
 import { useState } from "react";
-import { Modal, Button } from "react-bootstrap";
-import { FaGoogle } from "react-icons/fa";
+import {
+  Modal,
+  Button,
+  Spinner,
+  Form,
+  InputGroup,
+  FormControl,
+  Row,
+  Col,
+} from "react-bootstrap";
+import { FaGoogle, FaApple, FaXTwitter } from "react-icons/fa6";
+import { FiEye, FiEyeOff } from "react-icons/fi";
 import { auth } from "../../firebase";
 import { GoogleAuthProvider, signInWithPopup } from "firebase/auth";
 
 const SignInModal = ({ show, onHide }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
 
-  // Handle Google login
   const handleGoogleLogin = async () => {
     setLoading(true);
     setError("");
@@ -24,78 +34,111 @@ const SignInModal = ({ show, onHide }) => {
   };
 
   return (
-    <Modal show={show} onHide={onHide} centered>
+    <Modal
+      show={show}
+      onHide={onHide}
+      centered
+       keyboard={true} 
+      dialogClassName="border-0"
+      contentClassName="border-0"
+    >
       <Modal.Body
         className="p-4"
         style={{
-          maxWidth: 380,
+          width: "100%",
           margin: "0 auto",
-          borderRadius: 14,
-          boxShadow: "0 4px 24px rgba(0,0,0,0.10)",
-          background: "#fff",
+          borderRadius: "20px",
+          background: "#fff", // clean solid white background
+          boxShadow: "0 10px 40px rgba(0,0,0,0.08)",
         }}
       >
         <div className="text-center">
-          {/* Replace with your own iProedge logo if available */}
-          <img
-            src="/iproedge-logo.png"
-            alt="iProedge Logo"
-            style={{ width: 110, marginBottom: 18 }}
-            onError={e => (e.target.style.display = "none")}
-          />
-          <h4 className="fw-bold mb-3" style={{ color: "#14274e" }}>
-            Welcome to iProedge
-          </h4>
-          <p className="mb-4" style={{ color: "#222", fontSize: "1.04rem" }}>
-            Log in to your account to continue!
+          <h4 className="fw-bold mb-1">Welcome back</h4>
+          <p className="text-muted mb-4" style={{ fontSize: 14 }}>
+            Please enter your details to sign in
           </p>
 
           {error && (
-            <div className="alert alert-danger py-2" style={{ fontSize: 14 }}>
-              {error}
-            </div>
+            <div className="alert alert-danger py-2 small mb-3">{error}</div>
           )}
 
-          <Button
-            variant="primary"
-            className="d-flex align-items-center justify-content-center w-100 mb-3"
-            style={{
-              borderRadius: 24,
-              padding: "12px 0",
-              fontWeight: 600,
-              fontSize: 17,
-              color: "#fff",
-              background: "#14274e",
-              border: "none",
-              boxShadow: "0 2px 6px rgba(20,39,78,0.10)",
-            }}
-            onClick={handleGoogleLogin}
-            disabled={loading}
-          >
-            <FaGoogle className="me-2" size={22} />
-            Continue with Google
-          </Button>
+          {/* Social icons */}
+          <div className="d-flex justify-content-center gap-3 mb-4">
+            <Button
+              variant="outline-secondary"
+              className="border-0 shadow-sm px-3 py-2"
+              onClick={handleGoogleLogin}
+              disabled={loading}
+            >
+              {loading ? (
+                <Spinner animation="border" size="sm" />
+              ) : (
+                <FaGoogle size={18} />
+              )}
+            </Button>
+            <Button variant="outline-secondary" className="border-0 shadow-sm px-3 py-2">
+              <FaApple size={18} />
+            </Button>
+            <Button variant="outline-secondary" className="border-0 shadow-sm px-3 py-2">
+              <FaXTwitter size={18} />
+            </Button>
+          </div>
 
-          <div className="my-4" style={{ color: "#b0b7c3", fontSize: 14 }}>
+          {/* Divider */}
+          <div className="text-muted my-3" style={{ fontSize: 13 }}>
             — OR —
           </div>
 
-          <div className="mb-2" style={{ fontSize: 15, color: "#666" }}>
-            Don’t have an account?
-            <a
-              href="#"
-              style={{
-                color: "#14274e",
-                marginLeft: 4,
-                fontWeight: 500,
-                textDecoration: "none",
-              }}
-              onClick={e => {
-                e.preventDefault();
-                // You can trigger a register modal here if you have one
-              }}
+          <Form>
+            <Form.Group controlId="formEmail" className="mb-3">
+              <Form.Label className="text-muted small">Your Email Address</Form.Label>
+              <Form.Control type="email" placeholder="name@example.com" />
+            </Form.Group>
+
+            <Form.Group controlId="formPassword" className="mb-3">
+              <Form.Label className="text-muted small">Password</Form.Label>
+              <InputGroup>
+                <FormControl
+                  type={showPassword ? "text" : "password"}
+                  placeholder="••••••••"
+                />
+                <Button
+                  variant="outline-light"
+                  onClick={() => setShowPassword(!showPassword)}
+                >
+                  {showPassword ? <FiEyeOff /> : <FiEye />}
+                </Button>
+              </InputGroup>
+            </Form.Group>
+
+            <Row className="align-items-center mb-3">
+              <Col xs="6">
+                <Form.Check label="Remember me" />
+              </Col>
+              <Col xs="6" className="text-end">
+                <a
+                  href="#"
+                  className="text-decoration-none"
+                  style={{ fontSize: 13 }}
+                >
+                  Forgot password?
+                </a>
+              </Col>
+            </Row>
+
+            <Button
+              variant="dark"
+              type="submit"
+              className="w-100 rounded-pill py-2 fw-semibold"
             >
-              Create an account
+              Sign in
+            </Button>
+          </Form>
+
+          <div className="text-center mt-4" style={{ fontSize: 14 }}>
+            Don’t have an account?{" "}
+            <a href="#" className="fw-semibold text-dark text-decoration-none">
+              Sign up
             </a>
           </div>
         </div>
