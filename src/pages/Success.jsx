@@ -49,7 +49,9 @@ export default function Success() {
   const [cardSuccess, setCardSuccess] = useState(false);
 
   // Order submission states
-  const [orderId, setOrderId] = useState(() => localStorage.getItem("orderId") || null);
+  const [orderId, setOrderId] = useState(
+    () => localStorage.getItem("orderId") || null
+  );
   const [orderError, setOrderError] = useState("");
   const [orderLoading, setOrderLoading] = useState(false);
 
@@ -57,7 +59,6 @@ export default function Success() {
   const [palmpayWaiting, setPalmpayWaiting] = useState(false);
   const [palmpayPaid, setPalmpayPaid] = useState(false);
 
- 
   // Redirect if cart is empty
   useEffect(() => {
     if (!cartItems.length) {
@@ -65,7 +66,6 @@ export default function Success() {
     }
   }, [cartItems, navigate]);
 
-  
   useEffect(() => {
     if (paymentMethod === "paystack") setShowPaystack(true);
     if (paymentMethod === "debitcard") setShowCard(true);
@@ -261,8 +261,31 @@ export default function Success() {
                     >
                       <b>{customer.palmpay}</b>
                     </Alert>
+
+                    {/* ✅ ADD THIS */}
+                    <div
+                      className="mt-3"
+                      style={{ fontSize: "1rem", color: "#333" }}
+                    >
+                      ✅ <b>After payment:</b>
+                      Please send your payment receipt and your Order ID{" "}
+                      <b>{orderId}</b> to us on WhatsApp at{" "}
+                      <a
+                        href={`https://wa.me/2348063856166?text=Hello%20I%20just%20paid%20for%20my%20order.%20My%20Order%20ID%20is%20${orderId}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        style={{ color: "#06a", fontWeight: 600 }}
+                      >
+                        08063856166
+                      </a>
+                      .
+                    </div>
+
                     {palmpayPaid ? (
-                      <div className="text-success mb-3" style={{ fontWeight: 600, fontSize: "1.07rem" }}>
+                      <div
+                        className="text-success mb-3"
+                        style={{ fontWeight: 600, fontSize: "1.07rem" }}
+                      >
                         Payment received! Your order will be processed shortly.
                       </div>
                     ) : palmpayWaiting ? (
@@ -273,9 +296,11 @@ export default function Success() {
                             Waiting for payment confirmation...
                           </span>
                           <div style={{ fontSize: ".97rem" }} className="mt-2">
-                            Your order will be confirmed automatically as soon as your Palmpay transfer is received. <br />
+                            Your order will be confirmed automatically as soon
+                            as your Palmpay transfer is received. <br />
                             <span style={{ color: "#c00" }}>
-                              <b>Note:</b> If payment is not made within 24 hours, your order will be cancelled automatically.
+                              <b>Note:</b> If payment is not made within 24
+                              hours, your order will be cancelled automatically.
                             </span>
                           </div>
                         </div>
