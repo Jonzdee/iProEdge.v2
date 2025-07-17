@@ -1,13 +1,19 @@
-/* Enhanced Banner Styles */
 .image-container {
+  position: relative;
   overflow: hidden;
-  transition: all 0.3s ease;
+  width: 100%;
+  height: 400px; /* Default height for large screens */
 }
 
-.image-container:hover {
-  transform: scale(1.02);
+.banner-img {
+  width: 100%;
+  height: 100%;
+  object-fit:contain;
+  display: block;
+  
 }
 
+/* Overlay remains same */
 .overlay {
   position: absolute;
   top: 0;
@@ -18,8 +24,30 @@
   align-items: center;
   justify-content: center;
   z-index: 2;
+  background: linear-gradient(
+    135deg,
+    rgba(0, 0, 0, 0.6) 0%,
+    rgba(0, 0, 0, 0.3) 50%,
+    rgba(0, 0, 0, 0.7) 100%
+  );
 }
 
+/* Media queries for responsive height */
+@media (max-width: 992px) {
+  .image-container {
+    height: 300px; /* tablet size */
+  }
+}
+
+@media (max-width: 576px) {
+  .image-container {
+    height: 200px; /* mobile size */
+    
+  }
+}
+
+
+/* Banner content */
 .banner-content {
   animation: fadeInUp 1s ease-out;
 }
@@ -28,7 +56,7 @@
   font-size: 3.5rem;
   font-weight: 700;
   color: white;
-  text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
   margin-bottom: 1rem;
   letter-spacing: 2px;
   text-transform: uppercase;
@@ -67,7 +95,7 @@
   background: #fff;
   border-radius: 50%;
   animation: dotPulse 2s ease-in-out infinite;
-  box-shadow: 0 0 20px rgba(255,255,255,0.5);
+  box-shadow: 0 0 20px rgba(255, 255, 255, 0.5);
 }
 
 /* Particle Animation */
@@ -85,7 +113,7 @@
   position: absolute;
   width: 4px;
   height: 4px;
-  background: rgba(255,255,255,0.6);
+  background: rgba(255, 255, 255, 0.6);
   border-radius: 50%;
   animation: float 6s ease-in-out infinite;
 }
@@ -95,25 +123,21 @@
   top: 20%;
   animation-delay: 0s;
 }
-
 .particle:nth-child(2) {
   left: 80%;
   top: 80%;
   animation-delay: 2s;
 }
-
 .particle:nth-child(3) {
   left: 60%;
   top: 10%;
   animation-delay: 4s;
 }
-
 .particle:nth-child(4) {
   left: 10%;
   top: 70%;
   animation-delay: 1s;
 }
-
 .particle:nth-child(5) {
   left: 90%;
   top: 30%;
@@ -183,7 +207,7 @@
   }
 }
 
-/* Responsive Design */
+/* Responsive text adjustments */
 @media (max-width: 768px) {
   .banner-title {
     font-size: 2.5rem;
@@ -197,10 +221,6 @@
   .decoration-line {
     width: 40px;
   }
-  
-  .image-container {
-    min-height: 300px !important;
-  }
 }
 
 @media (max-width: 576px) {
@@ -210,9 +230,5 @@
   
   .banner-subtitle {
     font-size: 1rem;
-  }
-  
-  .image-container {
-    min-height: 250px !important;
   }
 }

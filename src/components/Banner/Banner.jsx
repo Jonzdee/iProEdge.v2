@@ -2,23 +2,18 @@ import { Col, Container, Row } from "react-bootstrap";
 import bannerImage from "../../Images/banner.jpg";
 import "./banner.css";
 
-const Banner = ({ title, subtitle, height = "400px" }) => {
+const Banner = ({ title, subtitle }) => {
   return (
-    <div
-      className="image-container"
-      style={{
-        backgroundImage: `linear-gradient(135deg, rgba(44, 44, 44, 0.6) 0%, rgba(54, 54, 54, 0.3) 50%, rgba(0,0,0,0.7) 100%), url(${bannerImage})`,
-        backgroundSize: "auto",
-        backgroundPosition: "top center",
-        backgroundRepeat: "no-repeat",
-        backgroundAttachment: "fixed", // Parallax effect
-        minHeight: height,
-        position: "relative",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-      }}
-    >
+    <div className="image-container" >
+      {/* Actual responsive image */}
+      <img
+        src={bannerImage}
+        alt="Banner"
+        className="banner-img"
+        
+      />
+
+      {/* Overlay content */}
       <div className="overlay">
         <Container>
           <Row className="text-center">
@@ -37,7 +32,7 @@ const Banner = ({ title, subtitle, height = "400px" }) => {
         </Container>
       </div>
 
-      {/* Animated particles effect */}
+      {/* Optional particles */}
       <div className="particles">
         <div className="particle"></div>
         <div className="particle"></div>
