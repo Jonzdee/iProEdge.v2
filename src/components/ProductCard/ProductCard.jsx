@@ -60,7 +60,7 @@ const ProductCard = ({ title, productItem }) => {
           <i className="fa fa-star"></i>
         </div>
         <div className="price">
-          <h4>₦{productItem.price}</h4>
+          <h4>₦{Number(productItem.price).toLocaleString()}</h4>
           <button
             aria-label="Add to Cart"
             type="submit"

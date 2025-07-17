@@ -30,12 +30,19 @@ const ProductDetails = ({ selectedProduct }) => {
   };
 
   // Gallery images: prefer gallery, fallback to image
-  const galleryImages = Array.isArray(selectedProduct?.gallery) && selectedProduct.gallery.length
-    ? selectedProduct.gallery.map(img =>
-        img?.asset ? urlFor(img.asset) : urlFor(img)
-      )
-    : selectedProduct?.image
-      ? [urlFor(selectedProduct.image.asset ? selectedProduct.image.asset : selectedProduct.image)]
+  const galleryImages =
+    Array.isArray(selectedProduct?.gallery) && selectedProduct.gallery.length
+      ? selectedProduct.gallery.map((img) =>
+          img?.asset ? urlFor(img.asset) : urlFor(img)
+        )
+      : selectedProduct?.image
+      ? [
+          urlFor(
+            selectedProduct.image.asset
+              ? selectedProduct.image.asset
+              : selectedProduct.image
+          ),
+        ]
       : [];
 
   const sliderSettings = {
@@ -43,7 +50,7 @@ const ProductDetails = ({ selectedProduct }) => {
     infinite: true,
     speed: 500,
     slidesToShow: 1,
-    slidesToScroll: 1
+    slidesToScroll: 1,
   };
 
   return (
@@ -64,7 +71,7 @@ const ProductDetails = ({ selectedProduct }) => {
                         height: 300,
                         objectFit: "contain",
                         borderRadius: 8,
-                        background: "#fafafa"
+                        background: "#fafafa",
                       }}
                     />
                   </div>
@@ -89,13 +96,25 @@ const ProductDetails = ({ selectedProduct }) => {
             </div>
             <div className="pricing info mb-2">
               <span className="price">
-                ₦{selectedProduct?.price?.toFixed(2)}
+                ₦
+                {Number(selectedProduct?.price).toLocaleString(undefined, {
+                  minimumFractionDigits: 2,
+                  maximumFractionDigits: 2,
+                })}
               </span>
+
               {selectedProduct?.oldPrice && (
                 <span className="old-price ms-2 text-muted">
-                  <del>₦{selectedProduct.oldPrice?.toFixed(2)}</del>
+                  <del>
+                    ₦
+                    {Number(selectedProduct?.oldPrice).toLocaleString(
+                      undefined,
+                      { minimumFractionDigits: 2, maximumFractionDigits: 2 }
+                    )}
+                  </del>
                 </span>
               )}
+
               {selectedProduct?.discount && (
                 <span className="discount ms-2 text-success">
                   -{selectedProduct.discount}%
@@ -105,7 +124,7 @@ const ProductDetails = ({ selectedProduct }) => {
             {selectedProduct?.shortDesc && (
               <p className="short-desc">{selectedProduct.shortDesc}</p>
             )}
-            
+
             {selectedProduct?.warranty && (
               <div className="warranty">
                 <h6>Warranty</h6>
