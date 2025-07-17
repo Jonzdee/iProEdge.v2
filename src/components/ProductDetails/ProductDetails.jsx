@@ -13,7 +13,10 @@ const ProductDetails = ({ selectedProduct }) => {
   const dispatch = useDispatch();
   const [quantity, setQuantity] = useState(1);
 
-  // Defensive: handle boolean, string, number
+  // ⭐ Modal state
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [startIndex, setStartIndex] = useState(0);
+
   const inStock =
     selectedProduct?.inStock === true ||
     selectedProduct?.inStock === "true" ||
@@ -29,7 +32,6 @@ const ProductDetails = ({ selectedProduct }) => {
     toast.success("Product has been added to cart!");
   };
 
-  // Gallery images: prefer gallery, fallback to image
   const galleryImages =
     Array.isArray(selectedProduct?.gallery) && selectedProduct.gallery.length
       ? selectedProduct.gallery.map((img) =>
@@ -53,25 +55,32 @@ const ProductDetails = ({ selectedProduct }) => {
     slidesToScroll: 1,
   };
 
+  // ⭐ Open modal with starting index
+  const openImageModal = (idx) => {
+    setStartIndex(idx);
+    setIsModalOpen(true);
+  };
+
   return (
     <section className="product-page">
       <Container>
         <Row className="justify-content-center">
           <Col md={6}>
-            {/* Gallery Slider */}
             {galleryImages.length > 0 && (
               <Slider {...sliderSettings}>
                 {galleryImages.map((imgUrl, idx) => (
                   <div key={idx}>
                     <img
                       src={imgUrl}
-                      alt={`Product image ₦{idx + 1}`}
+                      alt={`Product image ${idx + 1}`}
+                      onClick={() => openImageModal(idx)}
                       style={{
                         width: "100%",
                         height: 300,
                         objectFit: "contain",
                         borderRadius: 8,
                         background: "#fafafa",
+                        cursor: "pointer",
                       }}
                     />
                   </div>
@@ -79,6 +88,7 @@ const ProductDetails = ({ selectedProduct }) => {
               </Slider>
             )}
           </Col>
+
           <Col md={6}>
             <h2>{selectedProduct?.productName}</h2>
             <div className="info mb-2">
@@ -169,6 +179,24 @@ const ProductDetails = ({ selectedProduct }) => {
           </Col>
         </Row>
       </Container>
+
+      {/* ⭐ Fullscreen image modal with slider */}
+      {isModalOpen && (
+        <div className="image-modal" onClick={() => setIsModalOpen(false)}  >
+          <span className="close-btn" onClick={() => setIsModalOpen(false)}>
+            &times;
+          </span>
+          <div className="modal-slider" onClick={(e) => e.stopPropagation()} >
+            <Slider {...sliderSettings} initialSlide={startIndex}>
+              {galleryImages.map((imgUrl, idx) => (
+                <div key={idx}>
+                  <img src={imgUrl} alt={`Zoomed ${idx + 1}`} className="image-modal-content" />
+                </div>
+              ))}
+            </Slider>
+          </div>
+        </div>
+      )}
     </section>
   );
 };
