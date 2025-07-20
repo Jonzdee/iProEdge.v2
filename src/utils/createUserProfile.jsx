@@ -8,10 +8,18 @@ export async function createUserProfile(uid, userData) {
   if (!snap.exists()) {
     const referralCode = `IPRO${uid.substring(0, 6)}`;
 
+    // ✅ Create the user profile in `/users/{uid}`
     await setDoc(userRef, {
-      ...userData,                  // this includes referredBy if passed
+      ...userData,
       referralCode,
-      referredBy: userData.referredBy || null, // ✅ use userData.referredBy here
+      referredBy: userData.referredBy || null, // store referrer UID if any
+      createdAt: new Date(),
+    });
+
+    // ✅ Also create public referralCode mapping in `/referralCodes/{referralCode}`
+    const referralRef = doc(db, "referralCodes", referralCode);
+    await setDoc(referralRef, {
+      ownerUid: uid,
       createdAt: new Date(),
     });
 
