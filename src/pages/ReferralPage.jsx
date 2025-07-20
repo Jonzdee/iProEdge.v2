@@ -134,12 +134,12 @@ const handleCopyCode = async () => {
     <div
       style={{
         display: "inline-block",
-        background: "linear-gradient(45deg, #ff6b6b, #ffa500)",
+        background: "linear-gradient(45deg, #3b82f6, #1e40af)",
         padding: "0.8rem 1.8rem",
         borderRadius: "50px",
         fontWeight: 600,
         fontSize: "1rem",
-        boxShadow: "0 4px 15px rgba(255, 107, 107, 0.3)",
+        boxShadow: "0 4px 15px rgba(30, 64, 175, 0.35)",
       }}
     >
       🎁 Earn ₦500 for every successful referral
