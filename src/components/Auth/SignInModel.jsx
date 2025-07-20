@@ -13,50 +13,61 @@ import { FaGoogle, FaApple, FaXTwitter } from "react-icons/fa6";
 import { FiEye, FiEyeOff } from "react-icons/fi";
 import { auth, db } from "../../firebase";
 import { GoogleAuthProvider, signInWithPopup } from "firebase/auth";
-import { createUserProfile } from "../../utils/createUserProfile";
 import { useSearchParams } from "react-router-dom";
 import { collection, query, where, getDocs } from "firebase/firestore";
+
+// ✅ Helper to create profile
+import { createUserProfile } from "../../utils/createUserProfile";
 
 const SignInModal = ({ show, onHide }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [showPassword, setShowPassword] = useState(false);
 
-  // ✅ Capture ?ref= from URL
+  // ✅ Capture referral code from URL
   const [searchParams] = useSearchParams();
-  const referralCode = searchParams.get("ref"); // 👈 this is the referral code if present
+  const referralCode = searchParams.get("ref");
 
- const handleGoogleLogin = async () => {
-  setLoading(true);
-  setError("");
+  const handleGoogleLogin = async () => {
+    setLoading(true);
+    setError("");
+    try {
+      const provider = new GoogleAuthProvider();
+      const result = await signInWithPopup(auth, provider);
+      const user = result.user;
 
-  try {
-    const provider = new GoogleAuthProvider();
-    const result = await signInWithPopup(auth, provider);
-    const user = result.user;
+      let refUid = null;
 
-    // ✅ Get referralCode from URL
-    const referralCode = searchParams.get("ref");
-    let refUid = null;
-    if (referralCode) {
-      refUid = await getRefUidFromCode(referralCode); // 👈 look up UID
+      // ✅ Look up referral code if present
+      if (referralCode) {
+        const q = query(
+          collection(db, "users"),
+          where("referralCode", "==", referralCode)
+        );
+        const snap = await getDocs(q);
+        if (!snap.empty) {
+          refUid = snap.docs[0].id; // ✅ UID of referrer
+          console.log("✅ Referral code matched, referrer UID:", refUid);
+        } else {
+          console.log("ℹ️ No user found with referral code:", referralCode);
+        }
+      }
+
+      // ✅ Create user profile in Firestore
+      await createUserProfile(user.uid, {
+        name: user.displayName,
+        email: user.email,
+        referredBy: refUid, // 👈 store UID, not code
+      });
+
+      onHide();
+    } catch (err) {
+      console.error(err);
+      setError(err.message);
+    } finally {
+      setLoading(false);
     }
-
-    // ✅ Create profile in Firestore with refUid
-    await createUserProfile(user.uid, {
-      name: user.displayName,
-      email: user.email,
-      referredBy: refUid, // 👈 store UID
-    });
-
-    onHide();
-  } catch (err) {
-    setError(err.message);
-  } finally {
-    setLoading(false);
-  }
-};
-
+  };
 
   return (
     <Modal
