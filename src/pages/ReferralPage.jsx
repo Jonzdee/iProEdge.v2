@@ -264,32 +264,7 @@ const handleCopyCode = async () => {
         )}
       </Container>
 
-      {/* Stats Section */}
-      <div
-        style={{
-          background: "linear-gradient(135deg, #1a365d 0%, #2d3748 100%)",
-          color: "white",
-          padding: "3rem 0",
-          marginTop: "2rem",
-        }}
-      >
-        <Container>
-          <Row className="text-center">
-            {[
-              { number: "₦500", label: "Per Referral" },
-              { number: "₦500", label: "Friend Discount" },
-              { number: "∞", label: "Unlimited Referrals" },
-            ].map((stat, i) => (
-              <Col md={4} key={i} className="mb-4">
-                <h3 style={{ fontSize: "2.2rem", fontWeight: "800", color: "#ffd700" }}>
-                  {stat.number}
-                </h3>
-                <p className="text-uppercase text-light">{stat.label}</p>
-              </Col>
-            ))}
-          </Row>
-        </Container>
-      </div>
+     
     </div>
   );
 };
