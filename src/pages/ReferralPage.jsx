@@ -3,7 +3,7 @@ import { Container, Row, Col, Card, Button, Spinner } from "react-bootstrap";
 import { getAuth } from "firebase/auth";
 import { doc, getDoc } from "firebase/firestore";
 import { db } from "../firebase";
-import bannerImage from "../../src/images/banner new.jpg"; // Adjust path as needed
+import bannerImage from "../Images/banner new.jpg"; // Adjust path as needed
 const ReferralPage = () => {
   const [referralCode, setReferralCode] = useState("");
   const [user, setUser] = useState(null);
