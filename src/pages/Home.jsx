@@ -4,6 +4,7 @@ import Section from "../components/Section";
 import SliderHome from "../components/Slider";
 import useWindowScrollToTop from "../hooks/useWindowScrollToTop";
 import { useSanityProducts } from "../hooks/useSanityProducts";
+import ReferralAd from "../components/ReferralAd";
 
 const Home = () => {
   const { products = [], loading } = useSanityProducts();
@@ -251,6 +252,8 @@ const Home = () => {
   return (
     <Fragment>
       <SliderHome />
+      <ReferralAd />
+
 
       <div
         ref={filterNavRef}
