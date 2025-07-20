@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import {
   Modal,
   Button,
@@ -11,10 +11,11 @@ import {
 } from "react-bootstrap";
 import { FaGoogle, FaApple, FaXTwitter } from "react-icons/fa6";
 import { FiEye, FiEyeOff } from "react-icons/fi";
-import { auth } from "../../firebase";
+import { auth, db } from "../../firebase";
 import { GoogleAuthProvider, signInWithPopup } from "firebase/auth";
 import { createUserProfile } from "../../utils/createUserProfile";
 import { useSearchParams } from "react-router-dom";
+import { collection, query, where, getDocs } from "firebase/firestore";
 
 const SignInModal = ({ show, onHide }) => {
   const [loading, setLoading] = useState(false);
@@ -23,27 +24,44 @@ const SignInModal = ({ show, onHide }) => {
 
   // ✅ Capture ?ref= from URL
   const [searchParams] = useSearchParams();
-  const referredBy = searchParams.get("ref"); // 👈 this is the referral code if present
+  const referralCode = searchParams.get("ref"); // 👈 this is the referral code if present
 
   const handleGoogleLogin = async () => {
     setLoading(true);
     setError("");
+
     try {
       const provider = new GoogleAuthProvider();
-
-      // ✅ Sign in with Google
       const result = await signInWithPopup(auth, provider);
       const user = result.user;
 
-      // ✅ Create profile in Firestore and save referredBy if present
+      let refUid = null;
+
+      // ✅ If there is a referral code in URL, look it up in Firestore
+      if (referralCode) {
+        const q = query(
+          collection(db, "users"),
+          where("referralCode", "==", referralCode)
+        );
+        const snap = await getDocs(q);
+        if (!snap.empty) {
+          refUid = snap.docs[0].id; // ✅ get the UID of the referrer
+          console.log("✅ Referral code matched, referrer UID:", refUid);
+        } else {
+          console.log("ℹ️ No user found with referral code:", referralCode);
+        }
+      }
+
+      // ✅ Create user profile in Firestore and save refUid
       await createUserProfile(user.uid, {
         name: user.displayName,
         email: user.email,
-        referredBy: referredBy || null, // 👈 store referral info
+        referredBy: refUid, // 👈 now it's the UID, not the code
       });
 
       onHide();
     } catch (err) {
+      console.error(err);
       setError(err.message);
     } finally {
       setLoading(false);
@@ -87,7 +105,11 @@ const SignInModal = ({ show, onHide }) => {
               onClick={handleGoogleLogin}
               disabled={loading}
             >
-              {loading ? <Spinner animation="border" size="sm" /> : <FaGoogle size={18} />}
+              {loading ? (
+                <Spinner animation="border" size="sm" />
+              ) : (
+                <FaGoogle size={18} />
+              )}
             </Button>
             <Button
               variant="outline-secondary"
