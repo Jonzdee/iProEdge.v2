@@ -11,11 +11,11 @@ export async function createUserProfile(uid, userData) {
     // ✅ Create the user profile in `/users/{uid}`
     await setDoc(userRef, {
       ...userData,
-      referralCode,
-      referredBy: userData.referredBy || null, // store referrer UID if any
+      referralCode: `IPRO${uid.substring(0, 6)}`,
+      referredBy: userData.referredBy || null, // now a UID
+      walletBalance: 0,
       createdAt: new Date(),
     });
-
     // ✅ Also create public referralCode mapping in `/referralCodes/{referralCode}`
     const referralRef = doc(db, "referralCodes", referralCode);
     await setDoc(referralRef, {

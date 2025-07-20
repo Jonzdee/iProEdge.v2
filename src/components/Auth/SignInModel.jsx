@@ -26,47 +26,37 @@ const SignInModal = ({ show, onHide }) => {
   const [searchParams] = useSearchParams();
   const referralCode = searchParams.get("ref"); // 👈 this is the referral code if present
 
-  const handleGoogleLogin = async () => {
-    setLoading(true);
-    setError("");
+ const handleGoogleLogin = async () => {
+  setLoading(true);
+  setError("");
 
-    try {
-      const provider = new GoogleAuthProvider();
-      const result = await signInWithPopup(auth, provider);
-      const user = result.user;
+  try {
+    const provider = new GoogleAuthProvider();
+    const result = await signInWithPopup(auth, provider);
+    const user = result.user;
 
-      let refUid = null;
-
-      // ✅ If there is a referral code in URL, look it up in Firestore
-      if (referralCode) {
-        const q = query(
-          collection(db, "users"),
-          where("referralCode", "==", referralCode)
-        );
-        const snap = await getDocs(q);
-        if (!snap.empty) {
-          refUid = snap.docs[0].id; // ✅ get the UID of the referrer
-          console.log("✅ Referral code matched, referrer UID:", refUid);
-        } else {
-          console.log("ℹ️ No user found with referral code:", referralCode);
-        }
-      }
-
-      // ✅ Create user profile in Firestore and save refUid
-      await createUserProfile(user.uid, {
-        name: user.displayName,
-        email: user.email,
-        referredBy: refUid, // 👈 now it's the UID, not the code
-      });
-
-      onHide();
-    } catch (err) {
-      console.error(err);
-      setError(err.message);
-    } finally {
-      setLoading(false);
+    // ✅ Get referralCode from URL
+    const referralCode = searchParams.get("ref");
+    let refUid = null;
+    if (referralCode) {
+      refUid = await getRefUidFromCode(referralCode); // 👈 look up UID
     }
-  };
+
+    // ✅ Create profile in Firestore with refUid
+    await createUserProfile(user.uid, {
+      name: user.displayName,
+      email: user.email,
+      referredBy: refUid, // 👈 store UID
+    });
+
+    onHide();
+  } catch (err) {
+    setError(err.message);
+  } finally {
+    setLoading(false);
+  }
+};
+
 
   return (
     <Modal
