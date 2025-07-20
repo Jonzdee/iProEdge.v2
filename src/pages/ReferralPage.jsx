@@ -3,7 +3,7 @@ import { Container, Row, Col, Card, Button, Spinner } from "react-bootstrap";
 import { getAuth } from "firebase/auth";
 import { doc, getDoc } from "firebase/firestore";
 import { db } from "../firebase";
-
+import bannerImage from "../images/banner new.jpg";
 const ReferralPage = () => {
   const [referralCode, setReferralCode] = useState("");
   const [user, setUser] = useState(null);
@@ -85,7 +85,7 @@ const handleCopyCode = async () => {
       <div
   style={{
     position: "relative",
-    backgroundImage: `url("../../src/images/banner new.jpg")`, // ✅ if placed in public/images
+     backgroundImage: `url(${bannerImage})`, // ✅ if placed in public/images
     backgroundSize: "cover",
     backgroundPosition: "center",
     backgroundRepeat: "no-repeat",
