@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import Loader from "../components/Loader";
-import OrderTimeline from "../components/OrderTimeline"
+import OrderTimeline from "../components/OrderTimeline";
+import { Spinner } from "react-bootstrap";
 import {
   Container,
   Row,
@@ -26,7 +27,8 @@ import {
   FaHeadset,
 } from "react-icons/fa";
 import jsPDF from "jspdf";
-
+import { useNavigate } from "react-router-dom";
+import { FaWallet, FaPaperPlane } from "react-icons/fa";
 
 const TIMELINE_STATUSES = [
   { key: "processing", label: "Processing", icon: <FaRegClock color="#888" /> },
@@ -109,6 +111,49 @@ const Dashboard = () => {
     variant: "",
     message: "",
   });
+  const [walletBalance, setWalletBalance] = useState(0);
+  const [withdrawLoading, setWithdrawLoading] = useState(false);
+
+  // Fetch wallet balance along with orders (or separately)
+  useEffect(() => {
+    if (!user) return;
+
+    let isCancelled = false;
+
+    const fetchWalletBalance = async () => {
+      try {
+        const token = await user.getIdToken();
+        const res = await fetch(
+          `https://iproedgeback.onrender.com/wallet?userId=${encodeURIComponent(
+            user.uid
+          )}`,
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+
+        if (!res.ok) throw new Error(`Server responded with ${res.status}`);
+        const data = await res.json();
+
+        if (!isCancelled) {
+          if (data.success) {
+            setWalletBalance(data.balance || 0);
+          } else {
+            console.error(data.error || "Failed to fetch wallet balance");
+          }
+        }
+      } catch (err) {
+        if (!isCancelled) {
+          console.error("Wallet fetch error:", err);
+        }
+      }
+    };
+
+    fetchWalletBalance();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [user]);
+
   // 5. Feedback auto-dismiss
   useEffect(() => {
     if (feedback.show) {
@@ -121,41 +166,42 @@ const Dashboard = () => {
   }, [feedback]);
 
   // Fetch orders from backend API with authentication
-const fetchOrders = () => {
-  if (!user) return;
-  setLoading(true);
-  user.getIdToken().then((token) => {
-    fetch(
-      `https://iproedgeback.onrender.com/orders?userEmail=${encodeURIComponent(user.email)}`,
-      {
-        headers: { Authorization: `Bearer ${token}` },
-      }
-    )
-      .then((res) => res.json())
-      .then((data) => {
-        // Always create a new array reference!
-        const newOrders = data.success ? [...data.orders] : [];
-        setOrders(newOrders);
-        setLoading(false);
-        if (!data.success) {
+  const fetchOrders = () => {
+    if (!user) return;
+    setLoading(true);
+    user.getIdToken().then((token) => {
+      fetch(
+        `https://iproedgeback.onrender.com/orders?userEmail=${encodeURIComponent(
+          user.email
+        )}`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      )
+        .then((res) => res.json())
+        .then((data) => {
+          // Always create a new array reference!
+          const newOrders = data.success ? [...data.orders] : [];
+          setOrders(newOrders);
+          setLoading(false);
+          if (!data.success) {
+            setFeedback({
+              show: true,
+              variant: "danger",
+              message: data.error || "Failed to load orders.",
+            });
+          }
+        })
+        .catch((error) => {
           setFeedback({
             show: true,
             variant: "danger",
-            message: data.error || "Failed to load orders.",
+            message: "Failed to load orders: " + error.message,
           });
-        }
-        
-      })
-      .catch((error) => {
-        setFeedback({
-          show: true,
-          variant: "danger",
-          message: "Failed to load orders: " + error.message,
+          setLoading(false);
         });
-        setLoading(false);
-      });
-  });
-};
+    });
+  };
   // user becomes null (user logs out), so you clear orders and feedback immediately.
   useEffect(() => {
     if (!user) {
@@ -167,7 +213,26 @@ const fetchOrders = () => {
     fetchOrders();
   }, [user]);
 
-   
+  const handleWithdrawRequest = () => {
+    if (walletBalance <= 0) {
+      alert("You have no balance to withdraw.");
+      return;
+    }
+    setWithdrawLoading(true);
+
+    // ✅ Send WhatsApp message to admin with prefilled info
+    const adminPhone = "2348063856166"; // change to your WhatsApp number
+    const message = `Hello Admin, I would like to request a withdrawal from my wallet. 
+User: ${user.email}
+Amount: ₦${walletBalance.toLocaleString()}`;
+
+    // open WhatsApp
+    window.open(
+      `https://wa.me/${adminPhone}?text=${encodeURIComponent(message)}`,
+      "_blank"
+    );
+    setWithdrawLoading(false);
+  };
 
   const handleAction = async (orderId, type) => {
     setActionLoading(true);
@@ -234,7 +299,6 @@ const fetchOrders = () => {
     docPdf.text(`Payment Method: ${order.paymentMethod}`, 14, 52);
     docPdf.text(`Status: ${order.status}`, 14, 60);
 
-
     // Robust timestamp handling
     let orderDateStr = "N/A";
     if (order.timestamp) {
@@ -275,8 +339,6 @@ const fetchOrders = () => {
   };
 
   if (!user)
-
-    
     return (
       <Container className="py-5">
         <Alert variant="warning" className="text-center">
@@ -286,10 +348,48 @@ const fetchOrders = () => {
     );
 
   if (loading) return <Loader text="Loading your orders..." />;
-  
 
   return (
     <Container className="py-5">
+      <Row className="justify-content-center mb-4">
+        <Col xs={12} md={10} lg={8}>
+          <Card className="shadow-sm mb-4" style={{ borderRadius: 14 }}>
+            <Card.Body className="text-center">
+              <FaWallet size={40} color="#0d6efd" className="mb-3" />
+              <h4 style={{ fontWeight: "700", marginBottom: "0.5rem" }}>
+                Your Wallet Balance
+              </h4>
+              <h2 style={{ color: "#0d6efd", fontWeight: "800" }}>
+                ₦{walletBalance.toLocaleString()}
+              </h2>
+              <p className="text-muted mb-4">Earned from referrals</p>
+              <Button
+                variant="success"
+                size="lg"
+                onClick={handleWithdrawRequest}
+                disabled={withdrawLoading || walletBalance <= 0}
+                style={{
+                  borderRadius: "50px",
+                  fontWeight: "600",
+                  padding: "0.6rem 1.5rem",
+                }}
+              >
+                {withdrawLoading ? (
+                  <>
+                    <Spinner animation="border" size="sm" /> Processing…
+                  </>
+                ) : (
+                  <>
+                    <FaPaperPlane className="mb-1 me-2" />
+                    Request Withdrawal
+                  </>
+                )}
+              </Button>
+            </Card.Body>
+          </Card>
+        </Col>
+      </Row>
+
       <Row className="justify-content-center mb-4">
         <Col xs={12} md={10} lg={8}>
           <h2 className="mb-2" style={{ fontWeight: 700 }}>
@@ -398,7 +498,10 @@ const fetchOrders = () => {
                             </Badge>
                           </Card.Title>
                           {/* Timeline Bar */}
-                          <OrderTimeline statuses={TIMELINE_STATUSES} currentIdx={getTimelineStatusIndex(order.status)} />
+                          <OrderTimeline
+                            statuses={TIMELINE_STATUSES}
+                            currentIdx={getTimelineStatusIndex(order.status)}
+                          />
 
                           {extraStatus && (
                             <Badge bg={extraStatus.badgeBg} className="ms-2">
