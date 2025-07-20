@@ -12,7 +12,8 @@ export async function createUserProfile(uid, userData) {
     await setDoc(userRef, {
       ...userData,
       referralCode,
-      referredBy: null, // update later if they used a referral
+        referredBy: referredBy || null, // update later if they used a referral
+        createdAt: new Date(),
     });
     console.log("✅ User profile created with referral code:", referralCode);
   } else {
