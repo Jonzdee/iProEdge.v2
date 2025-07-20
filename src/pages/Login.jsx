@@ -1,6 +1,5 @@
 import EmailLogin from "../components/Auth/EmailLogin";
 import GoogleLogin from "../components/Auth/GoogleLogin";
-import PhoneLogin from "../components/Auth/PhoneLogin";
 
 export default function Login() {
   return (
@@ -8,7 +7,6 @@ export default function Login() {
       <h2>Login</h2>
       <EmailLogin />
       <GoogleLogin />
-      <PhoneLogin />
     </div>
   );
 }

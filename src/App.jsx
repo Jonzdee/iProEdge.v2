@@ -14,6 +14,7 @@ const Product = lazy(() => import("./pages/Product"));
 const Checkout = lazy(() => import("./pages/Checkout"));
 const Success = lazy(() => import("./pages/Success"));
 const Dashboard = lazy(() => import("./pages/Dashboard"));
+const ReferralPage = lazy(() => import("./pages/ReferralPage"));
 
 function App() {
   return (
@@ -39,6 +40,7 @@ function App() {
           <Route path="/checkout" element={<Checkout />} />
           <Route path="/checkout/success" element={<Success />} />
            <Route path="/dashboard" element={<Dashboard />} />
+           <Route path="/refer" element={<ReferralPage />} />
         </Routes>
         <Footer />
       </Router>

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Modal,
   Button,
@@ -13,18 +13,35 @@ import { FaGoogle, FaApple, FaXTwitter } from "react-icons/fa6";
 import { FiEye, FiEyeOff } from "react-icons/fi";
 import { auth } from "../../firebase";
 import { GoogleAuthProvider, signInWithPopup } from "firebase/auth";
+import { createUserProfile } from "../../utils/createUserProfile";
+import { useSearchParams } from "react-router-dom";
 
 const SignInModal = ({ show, onHide }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [showPassword, setShowPassword] = useState(false);
 
+  // ✅ Capture ?ref= from URL
+  const [searchParams] = useSearchParams();
+  const referredBy = searchParams.get("ref"); // 👈 this is the referral code if present
+
   const handleGoogleLogin = async () => {
     setLoading(true);
     setError("");
     try {
       const provider = new GoogleAuthProvider();
-      await signInWithPopup(auth, provider);
+
+      // ✅ Sign in with Google
+      const result = await signInWithPopup(auth, provider);
+      const user = result.user;
+
+      // ✅ Create profile in Firestore and save referredBy if present
+      await createUserProfile(user.uid, {
+        name: user.displayName,
+        email: user.email,
+        referredBy: referredBy || null, // 👈 store referral info
+      });
+
       onHide();
     } catch (err) {
       setError(err.message);
@@ -38,7 +55,7 @@ const SignInModal = ({ show, onHide }) => {
       show={show}
       onHide={onHide}
       centered
-       keyboard={true} 
+      keyboard={true}
       dialogClassName="border-0"
       contentClassName="border-0"
     >
@@ -48,12 +65,12 @@ const SignInModal = ({ show, onHide }) => {
           width: "100%",
           margin: "0 auto",
           borderRadius: "20px",
-          background: "#fff", // clean solid white background
+          background: "#fff",
           boxShadow: "0 10px 40px rgba(0,0,0,0.08)",
         }}
       >
         <div className="text-center">
-          <h4 className="fw-bold mb-1">Welcome back</h4>
+          <h4 className="fw-bold mb-1">Welcome</h4>
           <p className="text-muted mb-4" style={{ fontSize: 14 }}>
             Please enter your details to sign in
           </p>
@@ -70,28 +87,31 @@ const SignInModal = ({ show, onHide }) => {
               onClick={handleGoogleLogin}
               disabled={loading}
             >
-              {loading ? (
-                <Spinner animation="border" size="sm" />
-              ) : (
-                <FaGoogle size={18} />
-              )}
+              {loading ? <Spinner animation="border" size="sm" /> : <FaGoogle size={18} />}
             </Button>
-            <Button variant="outline-secondary" className="border-0 shadow-sm px-3 py-2">
+            <Button
+              variant="outline-secondary"
+              className="border-0 shadow-sm px-3 py-2"
+            >
               <FaApple size={18} />
             </Button>
-            <Button variant="outline-secondary" className="border-0 shadow-sm px-3 py-2">
+            <Button
+              variant="outline-secondary"
+              className="border-0 shadow-sm px-3 py-2"
+            >
               <FaXTwitter size={18} />
             </Button>
           </div>
 
-          {/* Divider */}
           <div className="text-muted my-3" style={{ fontSize: 13 }}>
             — OR —
           </div>
 
           <Form>
             <Form.Group controlId="formEmail" className="mb-3">
-              <Form.Label className="text-muted small">Your Email Address</Form.Label>
+              <Form.Label className="text-muted small">
+                Your Email Address
+              </Form.Label>
               <Form.Control type="email" placeholder="name@example.com" />
             </Form.Group>
 
