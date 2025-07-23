@@ -181,7 +181,7 @@ const Checkout = () => {
       : 0;
 
   // paystack integration
-  const publicKey = import.meta.env.VITE_PAYSTACK_PUBLIC_KEY;
+  const publicKey = import.meta.env.VITE_PAYSTACK_PUBLIC;
 
    // replace with your key
   const amountInKobo = (totalPrice + currentDeliveryFee - promo) * 100;
