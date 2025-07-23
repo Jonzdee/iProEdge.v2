@@ -1,5 +1,5 @@
 import React, { useState, useRef } from "react";
-import { v4 as uuidv4 } from 'uuid';
+import { v4 as uuidv4 } from "uuid";
 import {
   Container,
   Row,
@@ -20,6 +20,7 @@ import {
 import { useNavigate } from "react-router-dom";
 import { clearCart } from "../app/features/cart/cartSlice";
 import { useAuth } from "../context/AuthContext"; // <-- Make sure this exists and provides user
+import { PaystackButton } from "react-paystack";
 
 const PICKUP_STATIONS = [
   { name: "Ikorodu Garage", fee: 600 },
@@ -57,9 +58,7 @@ const PICKUP_STATIONS = [
 
 const PAYMENT_METHODS = [
   { value: "cod", label: "Cash on Delivery" },
-  { value: "palmpay", label: "Palmpay" },
   { value: "paystack", label: "Paystack" },
-  { value: "debitcard", label: "Debit Card" },
 ];
 
 const initialUser = {
@@ -76,6 +75,7 @@ const Checkout = () => {
   const [showAddressModal, setShowAddressModal] = useState(false);
   const [addressForm, setAddressForm] = useState(userInfo);
   const [addressChanged, setAddressChanged] = useState(false);
+  const [paymentStarted, setPaymentStarted] = useState(false);
   const dispatch = useDispatch();
   const { cartList } = useSelector((state) => state.cart);
   const totalPrice = cartList.reduce(
@@ -83,7 +83,7 @@ const Checkout = () => {
     0
   );
 
-  const promo = 100;
+  const promo = 1000;
 
   const [step, setStep] = useState(1);
   const [deliveryType, setDeliveryType] = useState("");
@@ -164,19 +164,6 @@ const Checkout = () => {
       setDeliveryChanged(false);
     }
   };
-
-  const canConfirmAddress =
-    !addressChanged &&
-    step === 1 &&
-    userInfo.name.trim() &&
-    userInfo.address.trim() &&
-    userInfo.phone.trim();
-  const canConfirmDelivery =
-    !deliveryChanged &&
-    step === 2 &&
-    (deliveryType === "door" || (deliveryType === "pickup" && pickupStation));
-  const canConfirmOrder = step === 3 && paymentMethod;
-
   // Find the station by name (bus stop)
   const selectedBusStop = PICKUP_STATIONS.find(
     (station) => station.name === userInfo.busStop
@@ -193,9 +180,172 @@ const Checkout = () => {
         : 0
       : 0;
 
+  // paystack integration
+  const publicKey = import.meta.env.VITE_PAYSTACK_PUBLIC_KEY;
+
+   // replace with your key
+  const amountInKobo = (totalPrice + currentDeliveryFee - promo) * 100;
+  const email = user?.email || "customer@example.com";
+  const name = userInfo.name;
+  const phone = userInfo.phone;
+
+  const paystackProps = {
+    email,
+    amount: Math.max(amountInKobo, 100), // Ensure at least ₦1
+    metadata: { name, phone },
+    publicKey,
+    text: "Pay Now with Paystack",
+
+    onSuccess: async (reference) => {
+      try {
+        setPaymentStarted(true); // Hide PaystackButton immediately
+
+        // 🔥 Step 1: Verify the payment with your backend
+        const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+
+        const verifyRes = await fetch(
+          `${API_BASE_URL}/verify-payment/${reference.reference}`,
+          {
+            method: "GET",
+            headers: { "Content-Type": "application/json" },
+          }
+        );
+        const verifyData = await verifyRes.json();
+        
+
+        if (!verifyRes.ok || !verifyData.success) {
+          setPaymentStarted(false);
+          alert(
+            "Payment could not be verified. Please contact support with your transaction reference."
+          );
+          return;
+        }
+
+        // 🔥 Step 2: Create the order in your backend after successful verification
+        const data = await handleConfirmOrder();
+        
+
+        if (!data || !data.orderId) {
+          setPaymentStarted(false);
+          alert("Order processing failed after payment verification.");
+          return;
+        }
+
+        // ✅ Step 3: Navigate to success page with details
+        navigate("/checkout/success", {
+          state: {
+            transactionId: reference.reference, // Paystack reference
+            cartItems: cartList,
+            paymentMethod: "paystack",
+            orderTotal: (
+              totalPrice +
+              currentDeliveryFee -
+              promo
+            ).toLocaleString(),
+            address: userInfo.address,
+            name: userInfo.name,
+            phone: userInfo.phone,
+            deliveryType,
+            pickupStation,
+            promo,
+            orderId: data.orderId, // include orderId from backend
+          },
+        });
+      } catch (err) {
+        setPaymentStarted(false);
+        console.error("❌ Error while verifying/creating order:", err);
+        alert(
+          "Payment succeeded but we couldn't verify or create your order. Please contact support."
+        );
+      }
+    },
+
+    onClose: () => {
+      setPaymentStarted(false); // Allow retry
+      console.warn("❌ Paystack payment window closed by user");
+      alert("Payment window closed before completion.");
+    },
+  };
+
+const handlePayOnDelivery = async () => {
+  setOrderLoading(true);
+  try {
+    const token = await user.getIdToken(); // Firebase auth token
+    if (!token) {
+      alert("You must be logged in to place an order.");
+      setOrderLoading(false);
+      return;
+    }
+
+    // ✅ Generate a unique clientOrderId for this order
+    const clientOrderId = uuidv4(); // e.g., "f47ac10b-58cc-4372-a567-0e02b2c3d479"
+
+    const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+    const response = await fetch(`${API_BASE_URL}/order`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`, // ✅ include auth token
+      },
+      body: JSON.stringify({
+        cartItems: cartList,
+        total: totalPrice + currentDeliveryFee - promo,
+        address: userInfo.address,
+        name: userInfo.name,
+        phone: userInfo.phone,
+        deliveryType,
+        pickupStation,
+        promo,
+        paymentMethod: "cod",
+        clientOrderId, // ✅ include unique ID
+      }),
+    });
+
+    const data = await response.json();
+
+    if (response.ok && data.success) {
+      navigate("/checkout/success", {
+        state: {
+          cartItems: cartList,
+          paymentMethod: "cod",
+          orderTotal: (totalPrice + currentDeliveryFee - promo).toLocaleString(),
+          address: userInfo.address,
+          name: userInfo.name,
+          phone: userInfo.phone,
+          deliveryType,
+          pickupStation,
+          promo,
+          orderId: data.orderId,
+        },
+      });
+    } else {
+      console.error("❌ Backend responded with error:", data);
+      alert(data.error || "Something went wrong, please try again.");
+    }
+  } catch (err) {
+    console.error("❌ Error while placing order:", err);
+    alert("Failed to place order. Please try again.");
+  } finally {
+    setOrderLoading(false);
+  }
+};
+
+
+  const canConfirmAddress =
+    !addressChanged &&
+    step === 1 &&
+    userInfo.name.trim() &&
+    userInfo.address.trim() &&
+    userInfo.phone.trim();
+  const canConfirmDelivery =
+    !deliveryChanged &&
+    step === 2 &&
+    (deliveryType === "door" || (deliveryType === "pickup" && pickupStation));
+  const canConfirmOrder = step === 3 && paymentMethod;
+
   // Order POST logic (robust, secure, no duplicates)
   const handleConfirmOrder = async () => {
-    if (orderLoading || hasPostedOrder.current) return; // Prevent double submit
+    if (orderLoading || hasPostedOrder.current) return null;
     setOrderConfirmed(true);
     setOrderLoading(true);
     setOrderError("");
@@ -207,21 +357,21 @@ const Checkout = () => {
       setOrderLoading(false);
       setOrderConfirmed(false);
       hasPostedOrder.current = false;
-      return;
+      return null;
     }
     if (deliveryType === "door" && !userInfo.address.trim()) {
       setOrderError("Please enter a delivery address for doorstep delivery.");
       setOrderLoading(false);
       setOrderConfirmed(false);
       hasPostedOrder.current = false;
-      return;
+      return null;
     }
     if (deliveryType === "door" && !userInfo.busStop) {
       setOrderError("Please select your nearest bus stop for door delivery.");
       setOrderLoading(false);
       setOrderConfirmed(false);
       hasPostedOrder.current = false;
-      return;
+      return null;
     }
 
     try {
@@ -230,7 +380,7 @@ const Checkout = () => {
         setOrderLoading(false);
         setOrderConfirmed(false);
         hasPostedOrder.current = false;
-        return;
+        return null;
       }
       const token = await user.getIdToken();
       const orderPayload = {
@@ -249,10 +399,11 @@ const Checkout = () => {
         pickupStation,
         promo,
         status: "pending",
-        clientOrderId: uuidv4(), 
+        clientOrderId: uuidv4(),
       };
 
-      const response = await fetch("https://iproedgeback.onrender.com/order", {
+      const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+      const response = await fetch(`${API_BASE_URL}/order`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -265,34 +416,19 @@ const Checkout = () => {
       if (data.success) {
         dispatch(clearCart());
         localStorage.removeItem("cartList");
-        navigate("/checkout/success", {
-          state: {
-            cartItems: cartList,
-            paymentMethod,
-            orderTotal: (
-              totalPrice +
-              currentDeliveryFee -
-              promo
-            ).toLocaleString(),
-            address: userInfo.address,
-            name: userInfo.name,
-            phone: userInfo.phone,
-            deliveryType,
-            pickupStation,
-            promo,
-            orderId: data.orderId,
-          },
-        });
+        return data; // <-- Return data, do not navigate here!
       } else {
         setOrderError(data.error || "Order failed. Please try again.");
         setOrderConfirmed(false);
         hasPostedOrder.current = false;
+        return null;
       }
     } catch (err) {
       setOrderLoading(false);
       setOrderError(err.message || "Network error. Please try again.");
       setOrderConfirmed(false);
       hasPostedOrder.current = false;
+      return null;
     }
   };
 
@@ -699,30 +835,11 @@ const Checkout = () => {
                       type="radio"
                       id={mtd.value}
                       name="paymentMethod"
-                      label={
-                        <>
-                          {mtd.label}
-                          {(mtd.value === "paystack" ||
-                            mtd.value === "debitcard") && (
-                            <span
-                              style={{
-                                color: "#c00",
-                                marginLeft: 8,
-                                fontSize: 12,
-                              }}
-                            >
-                              (Currently unavailable)
-                            </span>
-                          )}
-                        </>
-                      }
+                      label={mtd.label}
                       value={mtd.value}
                       checked={paymentMethod === mtd.value}
                       onChange={(e) => setPaymentMethod(e.target.value)}
                       style={{ marginBottom: 10 }}
-                      disabled={
-                        mtd.value === "paystack" || mtd.value === "debitcard"
-                      }
                     />
                   ))}
                 </Form>
@@ -807,15 +924,45 @@ const Checkout = () => {
                   You will be able to add a voucher when selecting your payment
                   method.
                 </Alert>
-                <Button
-                  className="checkout-btn w-100"
-                  variant="success"
-                  disabled={!canConfirmOrder || orderLoading}
-                  style={{ marginTop: 10 }}
-                  onClick={handleConfirmOrder}
-                >
-                  {orderConfirmed ? "Processing..." : "Confirm order"}
-                </Button>
+                {paymentMethod === "paystack" && (
+                  <PaystackButton
+                    {...paystackProps}
+                    className="checkout-btn w-100"
+                    style={{
+                      marginTop: 10,
+                      backgroundColor: "#28a745",
+                      color: "#fff",
+                      padding: "10px 16px",
+                      border: "none",
+                      borderRadius: "6px",
+                      fontSize: "1rem",
+                      cursor: "pointer",
+                    }}
+                    disabled={orderLoading}
+                  >
+                    Pay Now with Paystack
+                  </PaystackButton>
+                )}
+{paymentMethod === "cod" && (
+  <Button
+    className="checkout-btn w-100"
+    variant="warning"
+    style={{
+      marginTop: 10,
+      backgroundColor: "#ffbb00",
+      color: "#1a1a1a",
+      padding: "10px 16px",
+      border: "none",
+      borderRadius: "6px",
+      fontSize: "1rem",
+      cursor: "pointer",
+    }}
+    onClick={handlePayOnDelivery}
+    disabled={orderLoading}
+  >
+    Place Order (Pay on Delivery)
+  </Button>
+)}
                 <div
                   className="small text-center mt-1 text-muted"
                   style={{ fontSize: ".92rem" }}

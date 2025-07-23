@@ -119,12 +119,12 @@ const Dashboard = () => {
     if (!user) return;
 
     let isCancelled = false;
-
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
     const fetchWalletBalance = async () => {
       try {
         const token = await user.getIdToken();
         const res = await fetch(
-          `https://iproedgeback.onrender.com/wallet?userId=${encodeURIComponent(
+          `${API_BASE_URL}/wallet?userId=${encodeURIComponent(
             user.uid
           )}`,
           { headers: { Authorization: `Bearer ${token}` } }
@@ -166,6 +166,7 @@ const Dashboard = () => {
   }, [feedback]);
 
   // Fetch orders from backend API with authentication
+  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
   const fetchOrders = () => {
     if (!user) return;
     setLoading(true);
@@ -248,8 +249,9 @@ Amount: ₦${walletBalance.toLocaleString()}`;
     if (type === "return") statusUpdate = { status: "returnRequested" };
     try {
       const token = await user.getIdToken();
+      const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
       const res = await fetch(
-        `https://iproedgeback.onrender.com/order/${orderId}`,
+        `${API_BASE_URL}/order/${orderId}`,
         {
           method: "PATCH",
           headers: {

@@ -97,78 +97,7 @@ export default function Success() {
         paddingBottom: 40,
       }}
     >
-      {/* Payment Modals */}
-      <Modal show={showPaystack} onHide={() => setShowPaystack(false)} centered>
-        <Modal.Header closeButton>
-          <Modal.Title>Pay with Paystack</Modal.Title>
-        </Modal.Header>
-        <Modal.Body>
-          <div className="text-center mb-3">
-            <FaCheckCircle color="#06a" size={48} className="mb-2" />
-            <div style={{ fontWeight: 600, fontSize: 18, marginBottom: 10 }}>
-              Almost done!
-            </div>
-            <div>
-              Click the button below to pay <b>{orderTotal}</b> with Paystack.
-            </div>
-          </div>
-          <Button
-            style={{ background: "#06a", border: 0 }}
-            className="w-100"
-            onClick={handlePaystackPay}
-          >
-            Pay Now
-          </Button>
-        </Modal.Body>
-      </Modal>
-      <Modal show={showCard} onHide={() => setShowCard(false)} centered>
-        <Modal.Header closeButton>
-          <Modal.Title>Pay with Debit Card</Modal.Title>
-        </Modal.Header>
-        <Modal.Body>
-          {!cardSuccess ? (
-            <Form onSubmit={handleCardPay}>
-              <Form.Group className="mb-2">
-                <Form.Label>Card Number</Form.Label>
-                <Form.Control
-                  required
-                  maxLength={19}
-                  placeholder="1234 5678 9012 3456"
-                />
-              </Form.Group>
-              <Row>
-                <Col xs={6}>
-                  <Form.Group className="mb-2">
-                    <Form.Label>Expiry</Form.Label>
-                    <Form.Control required maxLength={5} placeholder="MM/YY" />
-                  </Form.Group>
-                </Col>
-                <Col xs={6}>
-                  <Form.Group className="mb-2">
-                    <Form.Label>CVV</Form.Label>
-                    <Form.Control required maxLength={4} placeholder="123" />
-                  </Form.Group>
-                </Col>
-              </Row>
-              <Button
-                className="w-100 mt-2"
-                style={{ background: "#06a", border: 0 }}
-                type="submit"
-              >
-                Pay {orderTotal}
-              </Button>
-            </Form>
-          ) : (
-            <div className="text-center py-5">
-              <FaCheckCircle color="green" size={48} className="mb-2" />
-              <div style={{ fontWeight: 600, fontSize: 18, marginBottom: 10 }}>
-                Payment Successful!
-              </div>
-              <div>Thank you for your order.</div>
-            </div>
-          )}
-        </Modal.Body>
-      </Modal>
+    
 
       <Container>
         <Row className="justify-content-center">
@@ -240,119 +169,54 @@ export default function Success() {
                   </div>
                 )}
 
-                {paymentMethod === "palmpay" && (
-                  <div>
-                    <div className="mb-2">
-                      <img
-                        src="https://techlifewithugo.com.ng/wp-content/uploads/2024/05/PalmPay-logo-1.jpg.jpeg"
-                        width={38}
-                        alt="Palmpay"
-                      />
-                    </div>
-                    <div className="mb-2" style={{ fontSize: "1.08rem" }}>
-                      Please transfer <b>{orderTotal}</b> to:
-                    </div>
-                    <Alert
-                      variant="success"
-                      className="mb-2"
-                      style={{ fontSize: "1.05rem" }}
-                    >
-                      <b>{customer.palmpay}</b>
-                    </Alert>
+                
 
-                    {/* ✅ ADD THIS */}
-                    <div
-                      className="mt-3"
-                      style={{ fontSize: "1rem", color: "#333" }}
-                    >
-                      ✅ <b>After payment:</b>
-                      Please send your payment receipt and your Order ID{" "}
-                      <b>{orderId}</b> to us on WhatsApp at{" "}
-                      <a
-                        href={`https://wa.me/2348063856166?text=Hello%20I%20just%20paid%20for%20my%20order.%20My%20Order%20ID%20is%20${orderId}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        style={{ color: "#06a", fontWeight: 600 }}
-                      >
-                        08063856166
-                      </a>
-                      .
-                    </div>
+               {paymentMethod === "paystack" && (
+  <div className="text-center">
+    <img
+      src="https://images.seeklogo.com/logo-png/40/1/paystack-logo-png_seeklogo-409509.png"
+      width={44}
+      alt="Paystack"
+      className="mb-2"
+    />
+    <div
+      style={{
+        fontSize: "1.08rem",
+        marginTop: 8,
+        color: "green",
+        fontWeight: 600,
+      }}
+    >
+      ✅ Payment confirmed successfully via Paystack!<br />
+      Your order ID is <b>{orderId}</b>.
+    </div>
+    <div
+      style={{
+        fontSize: "0.95rem",
+        color: "#333",
+        marginTop: "10px",
+        lineHeight: 1.5,
+      }}
+    >
+      📌 <b>Next Step:</b> You can track your order status anytime in your{" "}
+      <Button
+        variant="link"
+        style={{
+          padding: 0,
+          fontSize: "0.95rem",
+          fontWeight: 600,
+          color: "#06a",
+        }}
+        onClick={() => navigate("/dashboard")}
+      >
+        Dashboard
+      </Button>.
+    </div>
+  </div>
+)}
 
-                    {palmpayPaid ? (
-                      <div
-                        className="text-success mb-3"
-                        style={{ fontWeight: 600, fontSize: "1.07rem" }}
-                      >
-                        Payment received! Your order will be processed shortly.
-                      </div>
-                    ) : palmpayWaiting ? (
-                      <div>
-                        <div className="mb-3">
-                          <Spinner animation="border" size="sm" />{" "}
-                          <span style={{ fontWeight: 500 }}>
-                            Waiting for payment confirmation...
-                          </span>
-                          <div style={{ fontSize: ".97rem" }} className="mt-2">
-                            Your order will be confirmed automatically as soon
-                            as your Palmpay transfer is received. <br />
-                            <span style={{ color: "#c00" }}>
-                              <b>Note:</b> If payment is not made within 24
-                              hours, your order will be cancelled automatically.
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                    ) : null}
-                  </div>
-                )}
 
-                {paymentMethod === "paystack" && (
-                  <div>
-                    <img
-                      src="https://seeklogo.com/images/P/paystack-logo-F1577E4C8B-seeklogo.com.png"
-                      width={44}
-                      alt="Paystack"
-                      className="mb-2"
-                    />
-                    <div style={{ fontSize: "1.08rem" }}>
-                      Paystack payment in progress. <br />
-                      If the payment popup is closed,{" "}
-                      <Button
-                        variant="link"
-                        style={{ padding: 0, fontSize: "1rem" }}
-                        onClick={() => setShowPaystack(true)}
-                      >
-                        click here to pay again.
-                      </Button>
-                    </div>
-                  </div>
-                )}
-
-                {paymentMethod === "debitcard" && (
-                  <div>
-                    <FaCreditCard size={30} color="#06a" className="mb-2" />
-                    <div style={{ fontSize: "1.08rem" }}>
-                      Debit card payment. <br />
-                      {cardSuccess ? (
-                        <span style={{ color: "green" }}>
-                          Payment Successful!
-                        </span>
-                      ) : (
-                        <span>
-                          If you did not complete card payment,{" "}
-                          <Button
-                            variant="link"
-                            style={{ padding: 0, fontSize: "1rem" }}
-                            onClick={() => setShowCard(true)}
-                          >
-                            click here to pay.
-                          </Button>
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                )}
+              
 
                 <Button
                   className="mt-4"
