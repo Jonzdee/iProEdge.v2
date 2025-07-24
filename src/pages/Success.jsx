@@ -86,7 +86,6 @@ export default function Success() {
     }, 1200);
   };
 
-  // PALMPAY: Poll for payment confirmation (automation)
 
   return (
     <div

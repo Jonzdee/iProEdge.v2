@@ -185,7 +185,7 @@ const Checkout = () => {
 
    // replace with your key
   const amountInKobo = (totalPrice + currentDeliveryFee - promo) * 100;
-  const email = user?.email || "customer@example.com";
+  const email = user?.email;
   const name = userInfo.name;
   const phone = userInfo.phone;
 
