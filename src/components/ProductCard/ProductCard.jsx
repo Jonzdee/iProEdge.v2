@@ -40,7 +40,7 @@ const ProductCard = ({ title, productItem }) => {
 
       {/* Show discount badge if discount > 0 */}
 {productItem.discount > 0 && (
-  <span className="discount">{productItem.discount}% OFF</span>
+  <span className="discount">-{productItem.discount}% OFF</span>
 )}
 
       <img
