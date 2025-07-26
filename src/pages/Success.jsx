@@ -25,11 +25,19 @@ export default function Success() {
   const { user } = useAuth();
 
   // Prefer cart/order info from route state, fallback to localStorage ("cartList" key for consistency)
-  const [cartItems] = useState(
-    location.state?.cartItems ||
+  const [cartItems] = useState(() => {
+  try {
+    return (
+      location.state?.cartItems ||
       JSON.parse(localStorage.getItem("cartList")) ||
       []
-  );
+    );
+  } catch (e) {
+    console.error("Invalid cartList in localStorage", e);
+    return [];
+  }
+});
+
   const [orderTotal] = useState(
     location.state?.orderTotal ||
       cartItems.reduce((sum, item) => sum + item.price * (item.qty || 1), 0) ||

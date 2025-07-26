@@ -38,9 +38,11 @@ const ProductCard = ({ title, productItem }) => {
         </div>
       )}
 
-      {title === "Big Discount" && (
-        <span className="discount">{productItem.discount}% Off</span>
-      )}
+      {/* Show discount badge if discount > 0 */}
+{productItem.discount > 0 && (
+  <span className="discount">{productItem.discount}% OFF</span>
+)}
+
       <img
         loading="lazy"
         onClick={handleClick}

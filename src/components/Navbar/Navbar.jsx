@@ -169,11 +169,6 @@ const NavBar = () => {
                   <span className="nav-link-label">Home</span>
                 </Link>
               </Nav.Item>
-               <Nav.Item>
-                <Link className="navbar-link" to="/refer" onClick={handleNavLinkClick}>
-                  <span className="nav-link-label">Refer & Earn</span>
-                </Link>
-              </Nav.Item>
               <Nav.Item>
                 <Link className="navbar-link" to="/shop" onClick={handleNavLinkClick}>
                   <span className="nav-link-label">Shop</span>

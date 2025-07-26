@@ -190,11 +190,55 @@ const Checkout = () => {
   const phone = userInfo.phone;
 
   const paystackProps = {
-    email,
-    amount: Math.max(amountInKobo, 100), // Ensure at least ₦1
-    metadata: { name, phone },
-    publicKey,
-    text: "Pay Now with Paystack",
+     email, // required
+  amount: Math.max(amountInKobo, 100), // required
+  publicKey, // required
+  text: "Pay Now with Paystack",
+
+  metadata: {
+    custom_fields: [
+      {
+        display_name: "Full Name",
+        variable_name: "full_name",
+        value: userInfo.name, // ✅ your full name here
+      },
+      {
+        display_name: "Phone Number",
+        variable_name: "phone",
+        value: userInfo.phone,
+      },
+      {
+        display_name: "Address",
+        variable_name: "address",
+        value: userInfo.address,
+      },
+      {
+        display_name: "Landmark",
+        variable_name: "landmark",
+        value: userInfo.landmark,
+      },
+      {
+        display_name: "Bus Stop",
+        variable_name: "bus_stop",
+        value: userInfo.busStop,
+      },
+      {
+        display_name: "Delivery Type",
+        variable_name: "delivery_type",
+        value: deliveryType,
+      },
+      {
+        display_name: "Pickup Station",
+        variable_name: "pickup_station",
+        value: pickupStation,
+      },
+      {
+        display_name: "Promo",
+        variable_name: "promo",
+        value: promo,
+      },
+    ],
+  },
 
     onSuccess: async (reference) => {
       try {
@@ -277,15 +321,14 @@ const handlePayOnDelivery = async () => {
       return;
     }
 
-    // ✅ Generate a unique clientOrderId for this order
-    const clientOrderId = uuidv4(); // e.g., "f47ac10b-58cc-4372-a567-0e02b2c3d479"
+    const clientOrderId = uuidv4();
 
     const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
     const response = await fetch(`${API_BASE_URL}/order`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`, // ✅ include auth token
+        Authorization: `Bearer ${token}`,
       },
       body: JSON.stringify({
         cartItems: cartList,
@@ -297,13 +340,18 @@ const handlePayOnDelivery = async () => {
         pickupStation,
         promo,
         paymentMethod: "cod",
-        clientOrderId, // ✅ include unique ID
+        clientOrderId,
       }),
     });
 
     const data = await response.json();
 
     if (response.ok && data.success) {
+      // ✅ Clear cart
+      dispatch(clearCart());
+      localStorage.removeItem("cartList");
+
+      // ✅ Navigate to success page
       navigate("/checkout/success", {
         state: {
           cartItems: cartList,
@@ -329,6 +377,7 @@ const handlePayOnDelivery = async () => {
     setOrderLoading(false);
   }
 };
+
 
 
   const canConfirmAddress =
