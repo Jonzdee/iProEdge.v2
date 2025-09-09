@@ -372,46 +372,44 @@ useEffect(() => {
         </div>
       </div>
 
-      {/* Sections with GSAP entrance */}
-      {discountProducts.length > 0 && (
-        <Section
-          title={`🔥 Big Discount${
-            activeFilter !== "all"
-              ? ` - ${activeFilter[0].toUpperCase() + activeFilter.slice(1)}`
-              : ""
-          }`}
-          bgColor="var(--section-bg)"
-          productItems={discountProducts}
-          showBadge="discount"
-          cardRef={addToCardsRefs}
-        />
-      )}
-      {newArrivalData.length > 0 && (
-        <Section
-          title={`✨ New Arrivals${
-            activeFilter !== "all"
-              ? ` - ${activeFilter[0].toUpperCase() + activeFilter.slice(1)}`
-              : ""
-          }`}
-          bgColor="white"
-          productItems={newArrivalData}
-          showBadge="new"
-          cardRef={addToCardsRefs}
-        />
-      )}
-      {bestSales.length > 0 && (
-        <Section
-          title={`🏆 Best Sales${
-            activeFilter !== "all"
-              ? ` - ${activeFilter[0].toUpperCase() + activeFilter.slice(1)}`
-              : ""
-          }`}
-          bgColor="var(--section-bg)"
-          productItems={bestSales}
-          showBadge="bestseller"
-          cardRef={addToCardsRefs}
-        />
-      )}
+      {/* 🔥 Always render the filtered product list */}
+{filterList.length > 0 ? (
+  <Section
+    title={`${
+      activeFilter !== "all"
+        ? activeFilter[0].toUpperCase() + activeFilter.slice(1)
+        : "All"
+    } Products`}
+    bgColor="white"
+    productItems={filterList}
+    cardRef={addToCardsRefs}
+  />
+) : (
+  !loading && (
+    <div className="no-products-message text-center py-5">
+      <div className="container">
+        <h3>
+          No products found
+          {activeFilter !== "all" ? ` in "${activeFilter}" category` : ""}
+          {searchQuery ? ` for "${searchQuery}"` : ""}
+        </h3>
+        <p className="text-muted">
+          Try selecting a different category or search again.
+        </p>
+        <button
+          className="btn btn-primary"
+          onClick={(e) => {
+            handleFilterChange("all", e);
+            setSearchValue("");
+            setSearchQuery("");
+          }}
+        >
+          View All Products
+        </button>
+      </div>
+    </div>
+  )
+)}
 
       
       {/* All filtered products fallback */}

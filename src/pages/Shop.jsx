@@ -17,7 +17,6 @@ const Shop = () => {
   useEffect(() => {
     if (!loading) {
       setFilterList(products);
-      // Extract unique, non-empty categories from products
       setCategories(
         Array.from(new Set(products.map((p) => p.category).filter(Boolean)))
       );
@@ -28,23 +27,28 @@ const Shop = () => {
 
   return (
     <Fragment>
-      <Banner title="product" />
-      <section className="filter-bar">
-        <Container className="filter-bar-contianer">
-          <Row className="justify-content-center">
-            <Col md={4}>
+      <Banner title="Products" />
+      <section className="filter-bar py-4">
+        <Container fluid  className="mt-5">
+          <Row className="g-3 align-items-center">
+            {/* FilterSelect */}
+            <Col xs={12} md={4}>
               <FilterSelect
                 setFilterList={setFilterList}
                 products={products}
                 categories={categories}
               />
             </Col>
-            <Col md={8}>
+
+            {/* SearchBar */}
+            <Col xs={12} md={8}>
               <SearchBar setFilterList={setFilterList} products={products} />
             </Col>
           </Row>
         </Container>
-        <Container>
+
+        {/* Product List */}
+        <Container fluid className="mt-5">
           <ShopList productItems={filterList} />
         </Container>
       </section>

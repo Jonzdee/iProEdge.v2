@@ -82,8 +82,19 @@ button {
   height: 200px;
   overflow: hidden;
 }
+/* Kill container padding on shop grid */
+.shop-list-wrapper {
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+}
 
-.filter-bar-contianer .row {
+/* Kill row negative margins */
+.shop-list-wrapper > .row {
+  --bs-gutter-x: 0; /* removes horizontal gutter */
+}
+
+
+.filter-bar-container .row {
   flex-wrap: wrap-reverse !important;
 }
 

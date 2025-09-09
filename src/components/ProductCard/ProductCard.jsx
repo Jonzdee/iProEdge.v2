@@ -1,11 +1,9 @@
-import { Col } from "react-bootstrap";
 import "./product-card.css";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import { useDispatch } from "react-redux";
 import { addToCart } from "../../app/features/cart/cartSlice";
 
-// Map backend values to user-friendly text
 const labelMap = {
   bestSales: "Best Sales",
   newArrivals: "New Arrivals",
@@ -26,8 +24,7 @@ const ProductCard = ({ title, productItem }) => {
   };
 
   return (
-    <Col  className="product mtop">
-      {/* Product labels */}
+    <div className="product mtop">
       {Array.isArray(productItem.labels) && productItem.labels.length > 0 && (
         <div className="product-labels">
           {productItem.labels.map(label => (
@@ -38,10 +35,9 @@ const ProductCard = ({ title, productItem }) => {
         </div>
       )}
 
-      {/* Show discount badge if discount > 0 */}
-{productItem.discount > 0 && (
-  <span className="discount">-{productItem.discount}% OFF</span>
-)}
+      {productItem.discount > 0 && (
+        <span className="discount">-{productItem.discount}% OFF</span>
+      )}
 
       <img
         loading="lazy"
@@ -73,7 +69,7 @@ const ProductCard = ({ title, productItem }) => {
           </button>
         </div>
       </div>
-    </Col>
+    </div>
   );
 };
 
