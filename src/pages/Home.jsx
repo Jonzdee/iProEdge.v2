@@ -5,6 +5,7 @@ import SliderHome from "../components/Slider";
 import useWindowScrollToTop from "../hooks/useWindowScrollToTop";
 import { useSanityProducts } from "../hooks/useSanityProducts";
 import ReferralAd from "../components/ReferralAd";
+
 import "animate.css";
 
 const Home = () => {
@@ -64,6 +65,7 @@ const Home = () => {
       );
     }
   }, []);
+
 
   // GSAP: Filter Buttons Entrance + Animated Underline
   useEffect(() => {
@@ -269,15 +271,7 @@ useEffect(() => {
     <Fragment>
       <SliderHome />
       <ReferralAd />
-{/* ₦1000 Discount Notice Popup */}
-<div
-  id="discount-popup"
-  className="fixed bottom-6 right-6 bg-success text-white px-4 py-3 rounded-lg shadow-lg animate__animated animate__fadeInUp flex items-center justify-between gap-4"
-  style={{ zIndex: 9999, animationDuration: "0.8s", fontWeight: 600 }}
->
-  <span>🎉 ₦1000 OFF on every product today!</span>
-  
-</div>
+
 
 
 

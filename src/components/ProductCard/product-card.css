@@ -1,118 +1,126 @@
 .product {
-    background: #fff;
-    padding: 20px;
-     border-radius: 12px;
-    position: relative;
-    border-radius: 8px;
-    box-shadow: rgb(3 0 71 / 9%) 0px 1px 3px;
-    margin: 10px;
-    transition: box-shadow 0.3s ease, transform 0.3s ease;
+  background: #fff;
+  padding: 15px; /* reduced padding for smaller screens */
+  border-radius: 8px;
+  position: relative;
+  box-shadow: rgb(3 0 71 / 9%) 0px 1px 3px;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  transition: box-shadow 0.3s ease, transform 0.3s ease;
 }
 
 .product:hover {
-    box-shadow: rgb(3 0 71 / 20%) 0px 5px 15px;
-    transform: translateY(-5px);
+  box-shadow: rgb(3 0 71 / 20%) 0px 5px 15px;
+  transform: translateY(-5px);
 }
 
+/* Image */
 .product img {
-    width: 100%;
-    height: 200px !important;
-    object-fit: contain;
-    cursor: pointer;
-    transition: transform 0.3s ease;
+    
+  object-fit: contain;
+  cursor: pointer;
+  transition: transform 0.3s ease;
 }
 
 .product img:hover {
-    transform: scale(1.05);
+  transform: scale(1.05);
 }
 
-
-
+/* Title */
 .product h3 {
-    margin: 10px 0;
-    font-weight: 500;
-    font-size: 17px;
-    cursor: pointer;
-    color: #333;
-    transition: color 0.3s ease;
+  margin: 10px 0;
+  font-weight: 500;
+  font-size: 16px;
+  cursor: pointer;
+  color: #333;
+  transition: color 0.3s ease;
+  line-height: 1.3;
 }
 
 .product h3:hover {
-    color: #0f3460;
+  color: #0f3460;
 }
 
+/* Rating */
 .product .rate i {
-    font-size: 15px;
-    color: #ffcd4e;
-    margin: 5px 5px 5px 0;
+  font-size: 14px;
+  color: #ffcd4e;
+  margin: 5px 4px 5px 0;
 }
 
+/* Price + button row */
 .product .price {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    color: black;
-    margin-top: 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: auto; /* pushes price section to bottom */
+  gap: 8px;
 }
 
 .price h4 {
-    margin: 0;
+  margin: 0;
+  font-size: 15px;
+  font-weight: bold;
 }
 
+/* Add to cart button */
 button.add {
-    background: linear-gradient(45deg, #007bff, #0056b3);
-    color: #fff;
-    font-size: 12px;
-    padding: 8px 10px;
-    border-radius: 8px;
-    border: none;
-    cursor: pointer;
-    transition: background-color 0.3s ease, transform 0.3s ease, box-shadow 0.3s ease;
-    font-weight: bold;
-    
+  background: linear-gradient(45deg, #007bff, #0056b3);
+  color: #fff;
+  font-size: 12px;
+  padding: 8px 10px;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+  font-weight: bold;
+  transition: background-color 0.3s ease, transform 0.3s ease,
+    box-shadow 0.3s ease;
+  flex-shrink: 0;
 }
 
 button.add:hover {
-    background-color: #1c92d2;
-    box-shadow: 0px 4px 15px rgba(0, 0, 0, 0.2);
-    transform: translateY(-3px);
+  background-color: #1c92d2;
+  box-shadow: 0px 4px 15px rgba(0, 0, 0, 0.2);
+  transform: translateY(-3px);
 }
 
-.product-like {
-    position: absolute;
-    top: 0;
-    right: 0;
-    margin: 10px;
-    opacity: 0;
-    transition: 0.5s;
-}
 
-.product-like label {
-    background-color: #0f3460;
-    padding: 1px 10px;
-    font-size: 12px;
-    color: white;
-    border-radius: 50px;
-}
 
-.product-like ion-icon {
-    font-size: 20px;
-    margin: 10px 3px;
-    cursor: pointer;
-}
-
-.product:hover .product-like {
-    opacity: 1;
-}
-
+/* Discount badge */
 .discount {
   position: absolute;
   top: 10px;
-  right: 10px;  /* 👈 This keeps it at the right corner */
+  right: 10px;
   background: red;
   color: #fff;
   font-weight: bold;
   padding: 4px 8px;
   border-radius: 4px;
-  font-size: 0.85rem;
+  font-size: 0.5rem;
+}
+
+/* 🔥 Responsive fixes */
+@media (max-width: 576px) {
+  .product {
+    padding: 12px;
+  }
+
+  .product img {
+    height: 160px; /* smaller image on mobile */
+  }
+
+  .product h3 {
+    font-size: 14px;
+  }
+
+  .price h4 {
+    font-size: 14px;
+  }
+
+  button.add {
+    font-size: 11px;
+    padding: 6px 8px;
+  }
 }

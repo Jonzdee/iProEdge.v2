@@ -45,6 +45,8 @@ function App() {
         <Footer />
       </Router>
     </Suspense>
+
+    
   );
 }
 

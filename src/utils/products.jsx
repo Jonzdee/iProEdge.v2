@@ -1,8 +1,8 @@
 
-import wireless02 from "../Images/earphones_b_1.webp";
+import wireless02 from "../Images/earbud.jpg";
 
-import watchSlide from "../Images/watch-07.png";
-import speaker from "../Images/speaker2.webp";
+import watchSlide from "../Images/smart watch.jpg";
+import speaker from "../Images/speaker.jpg";
 
 
 export const SliderData = [

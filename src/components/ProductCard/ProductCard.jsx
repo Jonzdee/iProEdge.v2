@@ -26,7 +26,7 @@ const ProductCard = ({ title, productItem }) => {
   };
 
   return (
-    <Col md={3} sm={5} xs={10} className="product mtop">
+    <Col  className="product mtop">
       {/* Product labels */}
       {Array.isArray(productItem.labels) && productItem.labels.length > 0 && (
         <div className="product-labels">

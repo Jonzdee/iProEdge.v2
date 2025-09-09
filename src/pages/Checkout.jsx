@@ -58,6 +58,7 @@ const PICKUP_STATIONS = [
   { name: "Ketu", fee: 900 },
   { name: "Ojota", fee: 900 },
   { name: "MaryLand", fee: 900 },
+  { name: "Fakale", fee: 700 },
 ];
 
 const PAYMENT_METHODS = [
@@ -87,7 +88,7 @@ const Checkout = () => {
     0
   );
 
-  const promo = 1000;
+  const promo = 500;
 
   const [step, setStep] = useState(1);
   const [deliveryType, setDeliveryType] = useState("");
