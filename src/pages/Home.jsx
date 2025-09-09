@@ -5,7 +5,6 @@ import SliderHome from "../components/Slider";
 import useWindowScrollToTop from "../hooks/useWindowScrollToTop";
 import { useSanityProducts } from "../hooks/useSanityProducts";
 import ReferralAd from "../components/ReferralAd";
-
 import "animate.css";
 
 const Home = () => {
@@ -65,7 +64,6 @@ const Home = () => {
       );
     }
   }, []);
-
 
   // GSAP: Filter Buttons Entrance + Animated Underline
   useEffect(() => {
@@ -209,48 +207,26 @@ const Home = () => {
   }, [products, activeFilter, searchQuery, sortBy]);
 
   // UPDATED: Sectioned product logic with sorting
-  const getFilteredProducts = (labelFilter) => {
-    let baseProducts = products;
-    if (labelFilter === "newArrivals") {
-      baseProducts = products.filter(
-        (item) =>
-          Array.isArray(item.labels) && item.labels.includes("newArrivals")
-      );
-    } else if (labelFilter === "bestSales") {
-      baseProducts = products.filter(
-        (item) =>
-          Array.isArray(item.labels) && item.labels.includes("bestSales")
-      );
-    } else if (labelFilter === "discount") {
-      baseProducts = products.filter(
-        (item) =>
-          (item.discount && item.discount > 0) ||
-          (Array.isArray(item.labels) && item.labels.includes("bigDiscount"))
-      );
-    }
-    if (activeFilter !== "all") {
-      baseProducts = baseProducts.filter(
-        (item) => item.category === activeFilter
-      );
-    }
-    // Apply search filter for sections too!
-    if (searchQuery && searchQuery.trim().length > 0) {
-      const query = searchQuery.toLowerCase();
-      baseProducts = baseProducts.filter(
-        (item) =>
-          (item.title && item.title.toLowerCase().includes(query)) ||
-          (item.brand && item.brand.toLowerCase().includes(query)) ||
-          (item.category && item.category.toLowerCase().includes(query))
-      );
-    }
-    // Apply sorting to sections
-    return sortProducts(baseProducts, sortBy);
-  };
+ // Only products with the "bigDiscount" label will show here
+const discountProducts = products.filter(
+  (p) => Array.isArray(p.labels) && p.labels.includes("bigDiscount")
+);
 
-  // Sectioned data
-  const newArrivalData = getFilteredProducts("newArrivals");
-  const bestSales = getFilteredProducts("bestSales");
-  const discountProducts = getFilteredProducts("discount");
+// New arrivals remain the same
+const newArrivalData = products.filter(
+  (p) =>
+    Array.isArray(p.labels) && p.labels.includes("newArrivals")
+);
+
+// 3. Get Best Sales, excluding Discount & New Arrivals
+const bestSales = products.filter(
+  (p) =>
+    !discountProducts.includes(p) &&
+    !newArrivalData.includes(p) &&
+    Array.isArray(p.labels) &&
+    p.labels.includes("bestSales")
+);
+
 
 useEffect(() => {
   const showPopup = () => {
@@ -436,6 +412,8 @@ useEffect(() => {
           cardRef={addToCardsRefs}
         />
       )}
+
+      
       {/* All filtered products fallback */}
       {discountProducts.length === 0 &&
         newArrivalData.length === 0 &&
