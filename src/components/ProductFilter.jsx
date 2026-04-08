@@ -11,13 +11,13 @@ const CATALOGUE = [
                 id: "iphone",
                 label: "iPhone",
                 icon: "bi-phone-fill",
-                types: ["iPhone 16", "iPhone 15", "iPhone 14", "iPhone 13", "iPhone 12"],
+                types: ["iPhone"],
             },
             {
                 id: "samsung",
                 label: "Samsung",
                 icon: "bi-phone-flip",
-                types: ["Samsung S24", "Samsung S23", "Samsung A54", "Samsung A34"],
+                types: ["Samsung"],
             },
             {
                 id: "tablets",
