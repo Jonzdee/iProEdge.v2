@@ -3,9 +3,10 @@ import "bootstrap/dist/css/bootstrap.min.css";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import NavBar from "./components/Navbar/Navbar";
 import Footer from "./components/Footer/Footer";
-import Loader from "./components/Loader/Loader";
+
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import IProEdgeHeader from "./components/Iproedgeheader";
 
 const Home = lazy(() => import("./pages/Home"));
 const Shop = lazy(() => import("./pages/Shop"));
@@ -18,8 +19,9 @@ const ReferralPage = lazy(() => import("./pages/ReferralPage"));
 
 function App() {
   return (
-    <Suspense fallback={<Loader />}>
+    <Suspense >
       <Router>
+          <IProEdgeHeader />
         <ToastContainer
           position="top-right"
           autoClose={1000}

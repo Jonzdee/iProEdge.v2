@@ -1,4 +1,4 @@
-import { Row, Col } from "react-bootstrap";
+import { Container, Row, Col } from "react-bootstrap";
 import { memo } from "react";
 import ProductCard from "./ProductCard/ProductCard";
 
@@ -8,16 +8,25 @@ const ShopList = ({ productItems }) => {
   }
 
   return (
-    <div className="shop-list-wrapper">
-  <Row className="gy-3">
-    {productItems.map((productItem) => (
-      <Col key={productItem.id} xs={6} sm={4} md={3} lg={3} xl={2}>
-        <ProductCard title={null} productItem={productItem} />
-      </Col>
-    ))}
-  </Row>
-</div>
-
+    <section className="shop-list">
+      <Container fluid className="p-0">
+        <Row className="m-0 p-0" style={{ "--bs-gutter-x": "0" }}>
+          {productItems.map((productItem) => (
+            <Col
+              key={productItem.id}
+              xs={6}   // ✅ forces 2 per row on mobile
+              sm={4}
+              md={3}
+              lg={3}
+              xl={2}
+              className="p-0"  // ✅ removes col padding
+            >
+              <ProductCard title={null} productItem={productItem} />
+            </Col>
+          ))}
+        </Row>
+      </Container>
+    </section>
   );
 };
 

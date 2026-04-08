@@ -5,7 +5,7 @@ import ShopList from "../components/ShopList";
 import Banner from "../components/Banner/Banner";
 import useWindowScrollToTop from "../hooks/useWindowScrollToTop";
 import FilterSelect from "../components/FilterSelect";
-import SearchBar from "../../SeachBar/SearchBar";
+import SearchBar from "../components/SeachBar/SearchBar";
 
 const Shop = () => {
   const { products, loading } = useSanityProducts();
@@ -48,7 +48,7 @@ const Shop = () => {
         </Container>
 
         {/* Product List */}
-        <Container fluid className="mt-5">
+        <Container fluid >
           <ShopList productItems={filterList} />
         </Container>
       </section>
