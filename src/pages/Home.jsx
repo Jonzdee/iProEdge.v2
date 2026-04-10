@@ -166,7 +166,7 @@ const Home = () => {
         iphone: "iPhone", samsung: "Samsung", tablets: "Tablets",
         accessories: "Accessories", dahua: "Dahua", hikvision: "Hikvision", solar: "Solar Cameras",
       };
-      return labels[activeFilter.brand] || activeFilter.brand;
+      return labels[activeFilter.brand] || activeFilter.brand.toLowerCase();
     }
     if (activeFilter.group) {
       return activeFilter.group === "phones-tablets" ? "Phones & Tablets" : "Electronics";
