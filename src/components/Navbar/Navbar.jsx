@@ -77,9 +77,13 @@ const NavBar = () => {
           {displayName}
         </Dropdown.Header>
         <Dropdown.Divider />
-        <Dropdown.Item as={Link} to="/dashboard" onClick={handleNavLinkClick}>
-          Dashboard
-        </Dropdown.Item>
+        <Dropdown.Item
+  as={Link}
+  to="/account"
+  onClick={handleNavLinkClick}
+>
+  My Account
+</Dropdown.Item>
         <Dropdown.Divider />
         <Dropdown.Item onClick={handleSignOut}>
           Sign Out
@@ -179,13 +183,7 @@ const NavBar = () => {
                   <span className="nav-link-label">Cart</span>
                 </Link>
               </Nav.Item>
-              {user && (
-                <Nav.Item>
-                  <Link className="navbar-link" to="/dashboard" onClick={handleNavLinkClick}>
-                    <span className="nav-link-label">Dashboard</span>
-                  </Link>
-                </Nav.Item>
-              )}
+             
               <Nav.Item className="expanded-cart d-none d-md-flex align-items-center">
                 {user ? (
                   avatarDropdown
