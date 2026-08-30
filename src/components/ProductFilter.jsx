@@ -4,11 +4,11 @@ import { CATEGORY_HIERARCHY } from "../utils/categories";
 // ── Preset price brackets — the pattern Nigerian shoppers actually expect,
 // not a dual-thumb slider on a small screen ──
 const PRICE_BRACKETS = [
-  { id: "b1", label: "Under ₦10K", min: 0, max: 10000 },
-  { id: "b2", label: "₦50K – ₦150K", min: 50000, max: 150000 },
-  { id: "b3", label: "₦150K – ₦300K", min: 150000, max: 300000 },
-  { id: "b4", label: "₦300K – ₦500K", min: 300000, max: 500000 },
-  { id: "b5", label: "Above ₦500K", min: 500000, max: Infinity },
+  { id: "b1", label: "Under ₦5K", min: 0, max: 5000 },
+  { id: "b2", label: "₦5K – ₦10K", min: 5000, max: 10000 },
+  { id: "b3", label: "₦10K – ₦30K", min: 10000, max: 30000 },
+  { id: "b4", label: "₦30K – ₦50K", min: 30000, max: 50000 },
+  { id: "b5", label: "Above ₦50K", min: 50000, max: Infinity },
 ];
 
 // ── Single-select rating floor: "4★ & up", not five independent checkboxes ──
@@ -41,7 +41,9 @@ const ProductFilter = ({ products = [], onFilterChange }) => {
       group: openGroup,
       brand: openBrand,
       type: activeType?.type ?? null,
-      priceRange: priceBracket ? { min: priceBracket.min, max: priceBracket.max } : null,
+      priceRange: priceBracket
+        ? { min: priceBracket.min, max: priceBracket.max }
+        : null,
       minRating,
       inStock: inStockOnly,
       minDiscount,
@@ -64,18 +66,18 @@ const ProductFilter = ({ products = [], onFilterChange }) => {
     emit({ group: group.id, brand: next, type: null });
   };
 
-  const selectType = (group, brand, type) => {
+  const selectType = (group, brand, typeId) => {
     const isSame =
       activeType?.group === group.id &&
       activeType?.brand === brand.id &&
-      activeType?.type === type;
+      activeType?.type === typeId;
 
     if (isSame) {
       setActiveType(null);
       emit({ group: group.id, brand: brand.id, type: null });
     } else {
-      setActiveType({ group: group.id, brand: brand.id, type });
-      emit({ group: group.id, brand: brand.id, type });
+      setActiveType({ group: group.id, brand: brand.id, type: typeId });
+      emit({ group: group.id, brand: brand.id, type: typeId });
     }
   };
 
@@ -109,17 +111,31 @@ const ProductFilter = ({ products = [], onFilterChange }) => {
 
   const countGroup = (gId) => products.filter((p) => p.category === gId).length;
   const countBrand = (bId) => products.filter((p) => p.brand === bId).length;
-  const countType = (pType) => products.filter((p) => p.productType === pType).length;
+  const countType = (pTypeId) =>
+    products.filter((p) => p.productType === pTypeId).length;
 
   const hasActive =
-    openGroup || openBrand || activeType || priceBracket || minRating || inStockOnly || minDiscount;
+    openGroup ||
+    openBrand ||
+    activeType ||
+    priceBracket ||
+    minRating ||
+    inStockOnly ||
+    minDiscount;
 
   const activeGroup = activeType
     ? CATEGORY_HIERARCHY.find((g) => g.id === activeType.group)
     : null;
 
   const activeBrand = activeType
-    ? CATEGORY_HIERARCHY.flatMap((g) => g.brands).find((b) => b.id === activeType.brand)
+    ? CATEGORY_HIERARCHY.flatMap((g) => g.brands).find(
+        (b) => b.id === activeType.brand,
+      )
+    : null;
+
+  const activeTypeLabel = activeType
+    ? (activeBrand?.productTypes.find((t) => t.id === activeType.type)?.label ??
+      activeType.type)
     : null;
 
   const clearAll = () => {
@@ -162,19 +178,24 @@ const ProductFilter = ({ products = [], onFilterChange }) => {
           <i className="bi bi-chevron-right pf-bc-arrow" />
           <span>{activeBrand?.label}</span>
           <i className="bi bi-chevron-right pf-bc-arrow" />
-          <span className="pf-bc-active">{activeType.type}</span>
+          <span className="pf-bc-active">{activeTypeLabel}</span>
         </div>
       )}
 
       <div className="pf-sections">
         {/* ── CATEGORIES SECTION ── */}
         <div className="pf-section">
-          <button className="pf-section-toggle" onClick={() => toggleSection("categories")}>
+          <button
+            className="pf-section-toggle"
+            onClick={() => toggleSection("categories")}
+          >
             <span className="pf-section-title">
               <i className="bi bi-list me-2" />
               Categories
             </span>
-            <i className={`bi bi-chevron-${expandedSections.categories ? "up" : "down"}`} />
+            <i
+              className={`bi bi-chevron-${expandedSections.categories ? "up" : "down"}`}
+            />
           </button>
 
           {expandedSections.categories && (
@@ -190,7 +211,9 @@ const ProductFilter = ({ products = [], onFilterChange }) => {
                       <span className="pf-group-label">{group.label}</span>
                       <span className="pf-badge">{countGroup(group.id)}</span>
                     </span>
-                    <i className={`bi bi-chevron-${openGroup === group.id ? "up" : "down"} pf-caret`} />
+                    <i
+                      className={`bi bi-chevron-${openGroup === group.id ? "up" : "down"} pf-caret`}
+                    />
                   </button>
 
                   {openGroup === group.id && (
@@ -203,27 +226,38 @@ const ProductFilter = ({ products = [], onFilterChange }) => {
                           >
                             <span className="pf-row-left">
                               <i className={`bi ${brand.icon} pf-brand-icon`} />
-                              <span className="pf-brand-label">{brand.label}</span>
-                              <span className="pf-badge">{countBrand(brand.id)}</span>
+                              <span className="pf-brand-label">
+                                {brand.label}
+                              </span>
+                              <span className="pf-badge">
+                                {countBrand(brand.id)}
+                              </span>
                             </span>
-                            <i className={`bi bi-chevron-${openBrand === brand.id ? "up" : "down"} pf-caret`} />
+                            <i
+                              className={`bi bi-chevron-${openBrand === brand.id ? "up" : "down"} pf-caret`}
+                            />
                           </button>
 
                           {openBrand === brand.id && (
                             <div className="pf-chips">
                               {brand.productTypes.map((type) => {
                                 const isActive =
-                                  activeType?.brand === brand.id && activeType?.type === type;
-                                const cnt = countType(type);
+                                  activeType?.brand === brand.id &&
+                                  activeType?.type === type.id;
+                                const cnt = countType(type.id);
 
                                 return (
                                   <button
-                                    key={type}
+                                    key={type.id}
                                     className={`pf-chip ${isActive ? "is-active" : ""}`}
-                                    onClick={() => selectType(group, brand, type)}
+                                    onClick={() =>
+                                      selectType(group, brand, type.id)
+                                    }
                                   >
-                                    {type}
-                                    {cnt > 0 && <span className="pf-chip-cnt">{cnt}</span>}
+                                    {type.label}
+                                    {cnt > 0 && (
+                                      <span className="pf-chip-cnt">{cnt}</span>
+                                    )}
                                   </button>
                                 );
                               })}
@@ -241,12 +275,17 @@ const ProductFilter = ({ products = [], onFilterChange }) => {
 
         {/* ── PRICE SECTION — preset brackets, single-select ── */}
         <div className="pf-section">
-          <button className="pf-section-toggle" onClick={() => toggleSection("price")}>
+          <button
+            className="pf-section-toggle"
+            onClick={() => toggleSection("price")}
+          >
             <span className="pf-section-title">
               <i className="bi bi-tag me-2" />
               Price Range
             </span>
-            <i className={`bi bi-chevron-${expandedSections.price ? "up" : "down"}`} />
+            <i
+              className={`bi bi-chevron-${expandedSections.price ? "up" : "down"}`}
+            />
           </button>
 
           {expandedSections.price && (
@@ -268,12 +307,17 @@ const ProductFilter = ({ products = [], onFilterChange }) => {
 
         {/* ── RATING SECTION — single-select "X★ & up" ── */}
         <div className="pf-section">
-          <button className="pf-section-toggle" onClick={() => toggleSection("rating")}>
+          <button
+            className="pf-section-toggle"
+            onClick={() => toggleSection("rating")}
+          >
             <span className="pf-section-title">
               <i className="bi bi-star me-2" />
               Rating
             </span>
-            <i className={`bi bi-chevron-${expandedSections.rating ? "up" : "down"}`} />
+            <i
+              className={`bi bi-chevron-${expandedSections.rating ? "up" : "down"}`}
+            />
           </button>
 
           {expandedSections.rating && (
@@ -307,12 +351,17 @@ const ProductFilter = ({ products = [], onFilterChange }) => {
 
         {/* ── STOCK SECTION ── */}
         <div className="pf-section">
-          <button className="pf-section-toggle" onClick={() => toggleSection("stock")}>
+          <button
+            className="pf-section-toggle"
+            onClick={() => toggleSection("stock")}
+          >
             <span className="pf-section-title">
               <i className="bi bi-box-seam me-2" />
               Availability
             </span>
-            <i className={`bi bi-chevron-${expandedSections.stock ? "up" : "down"}`} />
+            <i
+              className={`bi bi-chevron-${expandedSections.stock ? "up" : "down"}`}
+            />
           </button>
 
           {expandedSections.stock && (
@@ -332,12 +381,17 @@ const ProductFilter = ({ products = [], onFilterChange }) => {
 
         {/* ── DISCOUNT SECTION — presets instead of a percent-range slider ── */}
         <div className="pf-section">
-          <button className="pf-section-toggle" onClick={() => toggleSection("discount")}>
+          <button
+            className="pf-section-toggle"
+            onClick={() => toggleSection("discount")}
+          >
             <span className="pf-section-title">
               <i className="bi bi-percent me-2" />
               Discount
             </span>
-            <i className={`bi bi-chevron-${expandedSections.discount ? "up" : "down"}`} />
+            <i
+              className={`bi bi-chevron-${expandedSections.discount ? "up" : "down"}`}
+            />
           </button>
 
           {expandedSections.discount && (

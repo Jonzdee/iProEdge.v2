@@ -19,13 +19,42 @@ const ShopList = ({ productItems }) => {
               md={3}
               lg={3}
               xl={2}
-              className="p-0"  // ✅ removes col padding
+              className="p-0 shop-list-col"  // ✅ removes col padding
             >
               <ProductCard title={null} productItem={productItem} />
             </Col>
           ))}
         </Row>
       </Container>
+
+      <style>{`
+        /* Prevent ProductCard (or its image) from having a fixed/min width
+           that's wider than a 50%-width mobile column — that's what breaks
+           "2 per row" visually even when the Bootstrap column math is right.
+           !important is needed here because a hardcoded inline style like
+           <Card style={{ width: "18rem" }}> — a very common Bootstrap
+           default — otherwise beats a normal stylesheet rule outright. */
+        .shop-list-col {
+          min-width: 0;
+        }
+
+        .shop-list-col > * {
+          width: 100% !important;
+          max-width: 100% !important;
+          box-sizing: border-box;
+        }
+
+        .shop-list-col .card {
+          width: 100% !important;
+          max-width: 100% !important;
+        }
+
+        .shop-list-col img {
+          width: 100% !important;
+          max-width: 100% !important;
+          height: auto !important;
+        }
+      `}</style>
     </section>
   );
 };

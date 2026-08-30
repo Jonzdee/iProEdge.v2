@@ -6,7 +6,12 @@ import { useSanityProducts } from "../hooks/useSanityProducts";
 import ReferralAd from "../components/ReferralAd";
 import ProductFilter from "../components/ProductFilter";
 import CategoryShowcase from "../components/CategoryShowcase/CategoryShowcase";
-import { CATEGORY_HIERARCHY } from "../utils/categories";
+import {
+  CATEGORY_HIERARCHY,
+  getCategoryLabel,
+  getBrandLabel,
+  getProductTypeLabel,
+} from "../utils/categories";
 import "animate.css";
 
 // ── Trust strip content: the stuff Nigerian buyers actually check for
@@ -33,6 +38,10 @@ const Home = () => {
     group: null,
     brand: null,
     type: null,
+    priceRange: null,
+    minRating: null,
+    inStock: false,
+    minDiscount: null,
   });
 
   const filterNavRef = useRef(null);
@@ -49,7 +58,7 @@ const Home = () => {
       gsap.fromTo(
         categorySectionRef.current,
         { opacity: 0, y: 30 },
-        { opacity: 1, y: 0, duration: 0.8, ease: "power2.out", delay: 0.2 }
+        { opacity: 1, y: 0, duration: 0.8, ease: "power2.out", delay: 0.2 },
       );
     }
   }, [loading]);
@@ -60,7 +69,7 @@ const Home = () => {
       gsap.fromTo(
         filterNavRef.current,
         { opacity: 0, y: -20 },
-        { opacity: 1, y: 0, duration: 0.8, ease: "power2.out" }
+        { opacity: 1, y: 0, duration: 0.8, ease: "power2.out" },
       );
     }
   }, [loading]);
@@ -68,12 +77,21 @@ const Home = () => {
   // ── GSAP: Hero section animation ──
   useEffect(() => {
     if (heroRef.current) {
-      const heroElements = heroRef.current.querySelectorAll(".hero-text, .hero-btn, .hero-tag");
+      const heroElements = heroRef.current.querySelectorAll(
+        ".hero-text, .hero-btn, .hero-tag",
+      );
       if (heroElements.length > 0) {
         gsap.fromTo(
           heroElements,
           { y: 80, opacity: 0, skewY: 8 },
-          { y: 0, opacity: 1, skewY: 0, duration: 1, stagger: 0.12, ease: "power4.out" }
+          {
+            y: 0,
+            opacity: 1,
+            skewY: 0,
+            duration: 1,
+            stagger: 0.12,
+            ease: "power4.out",
+          },
         );
       }
     }
@@ -85,7 +103,14 @@ const Home = () => {
       gsap.fromTo(
         cardsRefs.current,
         { y: 40, opacity: 0, scale: 0.95 },
-        { y: 0, opacity: 1, scale: 1, duration: 0.6, stagger: 0.08, ease: "expo.out" }
+        {
+          y: 0,
+          opacity: 1,
+          scale: 1,
+          duration: 0.6,
+          stagger: 0.08,
+          ease: "expo.out",
+        },
       );
     }
   }, [filterList]);
@@ -107,7 +132,9 @@ const Home = () => {
       case "popular":
         return sorted.sort((a, b) => (b.popularity || 0) - (a.popularity || 0));
       default:
-        return sorted.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+        return sorted.sort(
+          (a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0),
+        );
     }
   };
 
@@ -124,13 +151,30 @@ const Home = () => {
     if (activeFilter.type) {
       base = base.filter((p) => p.productType === activeFilter.type);
     }
+    if (activeFilter.priceRange) {
+      const { min, max } = activeFilter.priceRange;
+      base = base.filter((p) => {
+        const price = p.price || 0;
+        return price >= min && price <= max;
+      });
+    }
+    if (activeFilter.minRating) {
+      base = base.filter((p) => (p.avgRating || 0) >= activeFilter.minRating);
+    }
+    if (activeFilter.inStock) {
+      base = base.filter((p) => p.inStock === true);
+    }
+    if (activeFilter.minDiscount) {
+      base = base.filter((p) => (p.discount || 0) >= activeFilter.minDiscount);
+    }
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
-      base = base.filter((p) =>
-        (p.productName && p.productName.toLowerCase().includes(q)) ||
-        (p.brand && p.brand.toLowerCase().includes(q)) ||
-        (p.productType && p.productType.toLowerCase().includes(q)) ||
-        (p.category && p.category.toLowerCase().includes(q))
+      base = base.filter(
+        (p) =>
+          (p.productName && p.productName.toLowerCase().includes(q)) ||
+          (p.brand && p.brand.toLowerCase().includes(q)) ||
+          (p.productType && p.productType.toLowerCase().includes(q)) ||
+          (p.category && p.category.toLowerCase().includes(q)),
       );
     }
 
@@ -149,7 +193,9 @@ const Home = () => {
     setSearchValue(value);
     if (value.trim().length > 0) {
       const matched = products
-        .filter((item) => item.productName?.toLowerCase().includes(value.toLowerCase()))
+        .filter((item) =>
+          item.productName?.toLowerCase().includes(value.toLowerCase()),
+        )
         .map((item) => item.productName)
         .slice(0, 6);
       setSuggestions([...new Set(matched)]);
@@ -174,51 +220,59 @@ const Home = () => {
     setSearchValue("");
     setSearchQuery("");
     setTimeout(() => {
-      filterNavRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+      filterNavRef.current?.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
     }, 100);
   };
 
   const clearAll = () => {
-    setActiveFilter({ group: null, brand: null, type: null });
+    setActiveFilter({
+      group: null,
+      brand: null,
+      type: null,
+      priceRange: null,
+      minRating: null,
+      inStock: false,
+      minDiscount: null,
+    });
     setSearchValue("");
     setSearchQuery("");
   };
 
   const hasActiveFilter =
-    activeFilter.group || activeFilter.brand || activeFilter.type || searchQuery;
+    activeFilter.group ||
+    activeFilter.brand ||
+    activeFilter.type ||
+    activeFilter.priceRange ||
+    activeFilter.minRating ||
+    activeFilter.inStock ||
+    activeFilter.minDiscount ||
+    searchQuery;
 
   // ── Product sections by labels ──
   const discountProducts = products.filter(
-    (p) => Array.isArray(p.labels) && p.labels.includes("bigDiscount")
+    (p) => Array.isArray(p.labels) && p.labels.includes("bigDiscount"),
   );
   const newArrivalData = products.filter(
-    (p) => Array.isArray(p.labels) && p.labels.includes("newArrivals")
+    (p) => Array.isArray(p.labels) && p.labels.includes("newArrivals"),
   );
   const bestSales = products.filter(
     (p) =>
       !discountProducts.includes(p) &&
       !newArrivalData.includes(p) &&
       Array.isArray(p.labels) &&
-      p.labels.includes("bestSales")
+      p.labels.includes("bestSales"),
   );
 
+  // ── Section heading: derive from the shared category hierarchy instead of
+  // a hand-maintained id→label map, so it never goes stale when brands or
+  // categories change. ──
   const sectionTitle = () => {
-    if (activeFilter.type) return activeFilter.type;
-    if (activeFilter.brand) {
-      const labels = {
-        iphone: "iPhone",
-        samsung: "Samsung",
-        tablets: "Tablets",
-        accessories: "Accessories",
-        dahua: "Dahua",
-        hikvision: "Hikvision",
-        solar: "Solar Cameras",
-      };
-      return labels[activeFilter.brand] || activeFilter.brand.toLowerCase();
-    }
-    if (activeFilter.group) {
-      return activeFilter.group === "phones-tablets" ? "Phones & Tablets" : "Electronics";
-    }
+    if (activeFilter.type) return getProductTypeLabel(activeFilter.type);
+    if (activeFilter.brand) return getBrandLabel(activeFilter.brand);
+    if (activeFilter.group) return getCategoryLabel(activeFilter.group);
     return "All Products";
   };
 
@@ -244,7 +298,8 @@ const Home = () => {
             <div className="row align-items-center">
               <div className="col-12 col-lg-7">
                 <span className="hero-tag">
-                  <i className="bi bi-geo-alt-fill me-1" /> Serving Lagos &amp; Nationwide Delivery
+                  <i className="bi bi-geo-alt-fill me-1" /> Serving Lagos &amp;
+                  Nationwide Delivery
                 </span>
                 <h1 className="hero-text display-3 mb-4">
                   Original Tech.
@@ -252,14 +307,19 @@ const Home = () => {
                   <span className="hero-accent">Real Naija Prices.</span>
                 </h1>
                 <p className="hero-text lead mb-4">
-                  Phones, tablets, and security cameras — sourced genuine, tested before
-                  dispatch, backed by warranty. No wahala.
+                  Phones, tablets, smart watches, audio, computers and
+                  electronics — sourced genuine, tested before dispatch, backed
+                  by warranty. No wahala.
                 </p>
                 <div className="hero-btn-row">
                   <button
                     className="hero-btn btn-market"
                     onClick={() =>
-                      setActiveFilter({ group: "phones-tablets", brand: null, type: null })
+                      setActiveFilter({
+                        group: "phones-tablets",
+                        brand: null,
+                        type: null,
+                      })
                     }
                   >
                     <i className="bi bi-shop me-2" />
@@ -268,10 +328,14 @@ const Home = () => {
                   <button
                     className="hero-btn btn-market-ghost"
                     onClick={() =>
-                      setActiveFilter({ group: "electronics", brand: null, type: null })
+                      setActiveFilter({
+                        group: "electronics",
+                        brand: null,
+                        type: null,
+                      })
                     }
                   >
-                    Browse Security Cameras
+                    Browse All Categories
                     <i className="bi bi-arrow-right ms-2" />
                   </button>
                 </div>
@@ -362,7 +426,9 @@ const Home = () => {
                   if (e.key === "Escape") setShowSuggestions(false);
                 }}
                 onBlur={() => setTimeout(() => setShowSuggestions(false), 150)}
-                onFocus={() => suggestions.length > 0 && setShowSuggestions(true)}
+                onFocus={() =>
+                  suggestions.length > 0 && setShowSuggestions(true)
+                }
                 autoComplete="off"
               />
 
@@ -374,14 +440,21 @@ const Home = () => {
                       onMouseDown={() => handleSuggestionClick(name)}
                       className="autocomplete-item"
                     >
-                      <i className="bi bi-search text-muted me-2" style={{ fontSize: 12 }} />
+                      <i
+                        className="bi bi-search text-muted me-2"
+                        style={{ fontSize: 12 }}
+                      />
                       {name}
                     </li>
                   ))}
                 </ul>
               )}
 
-              <button className="btn-market-sm ms-2" id="search-button" type="submit">
+              <button
+                className="btn-market-sm ms-2"
+                id="search-button"
+                type="submit"
+              >
                 <i className="bi bi-search" />
                 <span className="ms-1  d-sm-inline">Search</span>
               </button>
@@ -420,6 +493,10 @@ const Home = () => {
                   group: filter.group,
                   brand: filter.brand,
                   type: filter.type,
+                  priceRange: filter.priceRange,
+                  minRating: filter.minRating,
+                  inStock: filter.inStock,
+                  minDiscount: filter.minDiscount,
                 });
                 setSearchValue("");
                 setSearchQuery("");
@@ -458,8 +535,8 @@ const Home = () => {
                 <i className="bi bi-search" />
                 <h3 className="mt-3">Nothing matches that search</h3>
                 <p className="text-muted">
-                  Try a different category, brand, or spelling — or clear filters to see
-                  everything in stock.
+                  Try a different category, brand, or spelling — or clear
+                  filters to see everything in stock.
                 </p>
                 <button className="btn-market" onClick={clearAll}>
                   <i className="bi bi-arrow-left me-2" />
@@ -520,18 +597,29 @@ const Home = () => {
         }
 
         @keyframes scroll-ticker {
-          from { transform: translateX(0); }
-          to { transform: translateX(-50%); }
+          from {
+            transform: translateX(0);
+          }
+          to {
+            transform: translateX(-50%);
+          }
         }
 
         @media (prefers-reduced-motion: reduce) {
-          .trust-ticker-track { animation: none; }
+          .trust-ticker-track {
+            animation: none;
+          }
         }
 
         /* ── Hero ── */
         .hero-section {
           position: relative;
-          background: linear-gradient(160deg, #ffffff 0%, var(--sky-tint) 55%, #dcecfa 100%);
+          background: linear-gradient(
+            160deg,
+            #ffffff 0%,
+            var(--sky-tint) 55%,
+            #dcecfa 100%
+          );
           padding: 4.5rem 0 5rem;
           overflow: hidden;
           border-bottom: 1px solid var(--line);
@@ -599,7 +687,10 @@ const Home = () => {
           border-radius: 10px;
           border: none;
           cursor: pointer;
-          transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+          transition:
+            transform 0.15s ease,
+            box-shadow 0.15s ease,
+            background 0.15s ease;
         }
 
         .btn-market {
@@ -805,7 +896,9 @@ const Home = () => {
         }
 
         @keyframes spin {
-          to { transform: rotate(360deg); }
+          to {
+            transform: rotate(360deg);
+          }
         }
 
         .loading-copy {
