@@ -1,15 +1,12 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
-import {
-  Spinner,
-  Alert,
-  Badge,
-  Button,
-} from "react-bootstrap";
+import { Spinner, Alert, Badge, Button } from "react-bootstrap";
 import {
   FaShoppingBag,
   FaEye,
+  FaMoneyBillWave,
+  FaCreditCard,
 } from "react-icons/fa";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
@@ -46,6 +43,39 @@ const getStatusVariant = (status) => {
   }
 };
 
+const PaymentBadge = ({ paymentMethod }) => {
+  switch (paymentMethod) {
+    case "cod":
+      return (
+        <Badge pill bg="warning" aria-label="Cash on Delivery">
+          <FaMoneyBillWave className="me-1" />
+          Cash on Delivery
+        </Badge>
+      );
+    case "palmpay":
+      return (
+        <Badge pill bg="success" aria-label="Palmpay">
+          Palmpay
+        </Badge>
+      );
+    case "paystack":
+      return (
+        <Badge pill bg="primary" aria-label="Paystack">
+          Paystack
+        </Badge>
+      );
+    case "debitcard":
+      return (
+        <Badge pill bg="primary" aria-label="Debit Card">
+          <FaCreditCard className="me-1" />
+          Debit Card
+        </Badge>
+      );
+    default:
+      return <span className="text-muted">N/A</span>;
+  }
+};
+
 const formatDate = (timestamp) => {
   if (!timestamp) return "N/A";
 
@@ -55,9 +85,7 @@ const formatDate = (timestamp) => {
     typeof timestamp === "object" &&
     (timestamp.seconds || timestamp._seconds)
   ) {
-    date = new Date(
-      (timestamp.seconds || timestamp._seconds) * 1000
-    );
+    date = new Date((timestamp.seconds || timestamp._seconds) * 1000);
   } else {
     date = new Date(timestamp);
   }
@@ -90,22 +118,18 @@ const Orders = () => {
         const token = await user.getIdToken();
 
         const response = await fetch(
-          `${API_BASE_URL}/orders?userEmail=${encodeURIComponent(
-            user.email
-          )}`,
+          `${API_BASE_URL}/orders?userEmail=${encodeURIComponent(user.email)}`,
           {
             headers: {
               Authorization: `Bearer ${token}`,
             },
-          }
+          },
         );
 
         const data = await response.json();
 
         if (!response.ok || !data.success) {
-          throw new Error(
-            data.error || "Failed to load orders."
-          );
+          throw new Error(data.error || "Failed to load orders.");
         }
 
         if (!cancelled) {
@@ -134,9 +158,7 @@ const Orders = () => {
     return (
       <div className="text-center py-5">
         <Spinner animation="border" />
-        <p className="mt-3 text-muted">
-          Loading your orders...
-        </p>
+        <p className="mt-3 text-muted">Loading your orders...</p>
       </div>
     );
   }
@@ -171,20 +193,13 @@ const Orders = () => {
       ) : (
         <div className="d-flex flex-column gap-3">
           {orders.map((order) => (
-            <div
-              className="card border-0 shadow-sm"
-              key={order.id}
-            >
+            <div className="card border-0 shadow-sm" key={order.id}>
               <div className="card-body">
                 <div className="d-flex flex-wrap justify-content-between gap-3">
                   <div>
-                    <small className="text-muted">
-                      Order ID
-                    </small>
+                    <small className="text-muted">Order ID</small>
 
-                    <h5 className="mb-1">
-                      #{order.id}
-                    </h5>
+                    <h5 className="mb-1">#{order.id}</h5>
 
                     <small className="text-muted">
                       {formatDate(order.timestamp)}
@@ -203,37 +218,24 @@ const Orders = () => {
 
                 <div className="row g-3">
                   <div className="col-md-4">
-                    <small className="text-muted d-block">
-                      Total
-                    </small>
+                    <small className="text-muted d-block">Total</small>
 
                     <strong>
-                      ₦
-                      {Number(
-                        order.orderTotal || 0
-                      ).toLocaleString()}
+                      ₦{Number(order.orderTotal || 0).toLocaleString()}
                     </strong>
                   </div>
 
                   <div className="col-md-4">
-                    <small className="text-muted d-block">
-                      Payment
-                    </small>
+                    <small className="text-muted d-block">Payment</small>
 
-                    <strong>
-                      {order.paymentMethod || "N/A"}
-                    </strong>
+                    <PaymentBadge paymentMethod={order.paymentMethod} />
                   </div>
 
                   <div className="col-md-4">
-                    <small className="text-muted d-block">
-                      Items
-                    </small>
+                    <small className="text-muted d-block">Items</small>
 
                     <strong>
-                      {Array.isArray(order.items)
-                        ? order.items.length
-                        : 0}
+                      {Array.isArray(order.items) ? order.items.length : 0}
                     </strong>
                   </div>
                 </div>

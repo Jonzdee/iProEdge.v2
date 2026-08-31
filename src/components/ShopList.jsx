@@ -8,18 +8,18 @@ const ShopList = ({ productItems }) => {
   }
 
   return (
-    <section className="shop-list">
+    <section className="shop-lis">
       <Container fluid className="p-0">
         <Row className="m-0 p-0" style={{ "--bs-gutter-x": "0" }}>
           {productItems.map((productItem) => (
             <Col
               key={productItem.id}
-              xs={6}   // ✅ forces 2 per row on mobile
+              xs={6}
               sm={4}
               md={3}
               lg={3}
               xl={2}
-              className="p-0 shop-list-col"  // ✅ removes col padding
+              className="p-0 shop-list-col"
             >
               <ProductCard title={null} productItem={productItem} />
             </Col>

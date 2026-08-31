@@ -32,7 +32,7 @@ const Home = () => {
   const [sortBy, setSortBy] = useState("newest");
   const [suggestions, setSuggestions] = useState([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
-
+const [showMobileFilter, setShowMobileFilter] = useState(false);
   // ── Filter state: group (category), brand, type (productType) ──
   const [activeFilter, setActiveFilter] = useState({
     group: null,
@@ -484,8 +484,19 @@ const Home = () => {
 
       {/* ─── MAIN LAYOUT: SIDEBAR + PRODUCTS ────────────────────────────── */}
       <div className="container-fluid py-4">
+        {/* Mobile-only filter trigger */}
+        <button
+          className="mobile-filter-btn d-md-none"
+          onClick={() => setShowMobileFilter(true)}
+        >
+          <i className="bi bi-sliders me-2" />
+          Filters
+          {hasActiveFilter && <span className="mobile-filter-dot" />}
+        </button>
+
         <div className="row g-4">
-          <div className="col-12 col-md-3 col-lg-2">
+          {/* Desktop sidebar */}
+          <div className="col-12 col-md-3 col-lg-2 d-none d-md-block">
             <ProductFilter
               products={products}
               onFilterChange={(filter) => {
@@ -547,6 +558,48 @@ const Home = () => {
           </div>
         </div>
       </div>
+
+      {/* Mobile filter drawer */}
+      {showMobileFilter && (
+        <div
+          className="mobile-filter-backdrop d-md-none"
+          onClick={() => setShowMobileFilter(false)}
+        >
+          <div
+            className="mobile-filter-drawer"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="mobile-filter-drawer-header">
+              <h5>Filters</h5>
+              <button
+                className="mobile-filter-close"
+                onClick={() => setShowMobileFilter(false)}
+              >
+                <i className="bi bi-x-lg" />
+              </button>
+            </div>
+            <div className="mobile-filter-drawer-body">
+              <ProductFilter
+                products={products}
+                onFilterChange={(filter) => {
+                  setActiveFilter({
+                    group: filter.group,
+                    brand: filter.brand,
+                    type: filter.type,
+                    priceRange: filter.priceRange,
+                    minRating: filter.minRating,
+                    inStock: filter.inStock,
+                    minDiscount: filter.minDiscount,
+                  });
+                  setSearchValue("");
+                  setSearchQuery("");
+                  setShowMobileFilter(false); // close drawer after picking
+                }}
+              />
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ─── REFERRAL SECTION ──────────────────────────────────────────── */}
       <ReferralAd />
@@ -950,6 +1003,103 @@ const Home = () => {
 
           h1.hero-text {
             font-size: 2.1rem;
+          }
+          /* ── Mobile filter trigger ── */
+          .mobile-filter-btn {
+            display: inline-flex;
+            align-items: center;
+            position: relative;
+            background: #fff;
+            border: 1px solid var(--line);
+            border-radius: 10px;
+            padding: 0.6rem 1.1rem;
+            font-family: "Sora", sans-serif;
+            font-weight: 700;
+            font-size: 0.9rem;
+            color: var(--ink);
+            margin-bottom: 1rem;
+          }
+
+          .mobile-filter-btn i {
+            color: var(--sky-deep);
+          }
+
+          .mobile-filter-dot {
+            position: absolute;
+            top: -4px;
+            right: -4px;
+            width: 10px;
+            height: 10px;
+            background: var(--clay);
+            border-radius: 50%;
+            border: 2px solid #fff;
+          }
+
+          /* ── Mobile filter drawer ── */
+          .mobile-filter-backdrop {
+            position: fixed;
+            inset: 0;
+            background: rgba(20, 23, 31, 0.45);
+            z-index: 1050;
+            display: flex;
+            justify-content: flex-end;
+            animation: fadeIn 0.2s ease;
+          }
+
+          .mobile-filter-drawer {
+            width: min(85vw, 340px);
+            height: 100%;
+            background: #fff;
+            display: flex;
+            flex-direction: column;
+            animation: slideIn 0.25s ease;
+            overflow-y: auto;
+          }
+
+          .mobile-filter-drawer-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 1rem 1.25rem;
+            border-bottom: 1px solid var(--line);
+            position: sticky;
+            top: 0;
+            background: #fff;
+          }
+
+          .mobile-filter-drawer-header h5 {
+            font-family: "Sora", sans-serif;
+            font-weight: 800;
+            margin: 0;
+          }
+
+          .mobile-filter-close {
+            background: none;
+            border: none;
+            font-size: 1.1rem;
+            color: var(--ink);
+          }
+
+          .mobile-filter-drawer-body {
+            padding: 1rem 1.25rem 2rem;
+          }
+
+          @keyframes slideIn {
+            from {
+              transform: translateX(100%);
+            }
+            to {
+              transform: translateX(0);
+            }
+          }
+
+          @keyframes fadeIn {
+            from {
+              opacity: 0;
+            }
+            to {
+              opacity: 1;
+            }
           }
         }
       `}</style>

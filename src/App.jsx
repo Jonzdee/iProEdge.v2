@@ -15,7 +15,7 @@ const Cart = lazy(() => import("./pages/Cart"));
 const Product = lazy(() => import("./pages/Product"));
 const Checkout = lazy(() => import("./pages/Checkout"));
 const Success = lazy(() => import("./pages/Success"));
-const Dashboard = lazy(() => import("./pages/Dashboard"));
+
 const ReferralPage = lazy(() => import("./pages/ReferralPage"));
 
 const AccountLayout = lazy(
@@ -30,7 +30,7 @@ const OrderDetails = lazy(
 );
 const Addresses = lazy(() => import("./pages/Account/Addresses"));
 const Wallet = lazy(() => import("./pages/Account/Wallet"));
-const Payments = lazy(() => import("./pages/Account/Payments"));
+
 const GiftCards = lazy(() => import("./pages/Account/GiftCards"));
 const ReturnsRefunds = lazy(
   () => import("./pages/Account/ReturnsRefunds")
@@ -80,7 +80,7 @@ function App() {
           <Route path="/checkout/success" element={<Success />} />
 
           {/* Existing dashboard */}
-          <Route path="/dashboard" element={<Dashboard />} />
+         
           <Route path="/refer" element={<ReferralPage />} />
 
           {/* Customer Account */}
@@ -94,7 +94,7 @@ function App() {
             />
             <Route path="addresses" element={<Addresses />} />
             <Route path="wallet" element={<Wallet />} />
-            <Route path="payments" element={<Payments />} />
+           
             <Route path="gift-cards" element={<GiftCards />} />
             <Route
               path="return-refunds"

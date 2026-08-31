@@ -46,11 +46,7 @@ const menuItems = [
     path: "/account/wallet",
     icon: FaWallet,
   },
-  {
-    label: "Payment",
-    path: "/account/payments",
-    icon: FaCreditCard,
-  },
+  
   {
     label: "Gift Cards",
     path: "/account/gift-cards",

@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { v4 as uuidv4 } from "uuid";
 import {
   Container,
@@ -21,6 +21,8 @@ import { useNavigate } from "react-router-dom";
 import { clearCart } from "../app/features/cart/cartSlice";
 import { useAuth } from "../context/AuthContext"; // <-- Make sure this exists and provides user
 import { PaystackButton } from "react-paystack";
+import { collection, getDocs, query, orderBy } from "firebase/firestore";
+import { db } from "../firebase";
 
 const PICKUP_STATIONS = [
   { name: "Ikorodu Garage", fee: 300 },
@@ -85,7 +87,7 @@ const Checkout = () => {
   const { cartList } = useSelector((state) => state.cart);
   const totalPrice = cartList.reduce(
     (price, item) => price + item.qty * item.price,
-    0
+    0,
   );
 
   const promo = 500;
@@ -105,12 +107,78 @@ const Checkout = () => {
   const [orderError, setOrderError] = useState("");
   const hasPostedOrder = useRef(false);
 
+  // Saved addresses (from users/{uid}/addresses)
+  const [savedAddresses, setSavedAddresses] = useState([]);
+  const [loadingSavedAddresses, setLoadingSavedAddresses] = useState(true);
+  const [selectedAddressId, setSelectedAddressId] = useState("");
+
   const navigate = useNavigate();
+
+  // Fetch saved addresses and prefill checkout with the most recent one
+  useEffect(() => {
+    if (!user) {
+      setLoadingSavedAddresses(false);
+      return;
+    }
+
+    const loadSavedAddresses = async () => {
+      try {
+        const addressesRef = collection(db, "users", user.uid, "addresses");
+        const q = query(addressesRef, orderBy("createdAt", "desc"));
+        const snap = await getDocs(q);
+        const fetched = snap.docs.map((docSnap) => ({
+          id: docSnap.id,
+          ...docSnap.data(),
+        }));
+
+        setSavedAddresses(fetched);
+
+        if (fetched.length > 0) {
+          const [mostRecent] = fetched;
+          const prefill = {
+            name: mostRecent.name || "",
+            phone: mostRecent.phone || "",
+            address: mostRecent.address || "",
+            busStop: mostRecent.busStop || "",
+            landmark: mostRecent.landmark || "",
+          };
+
+          setUserInfo(prefill);
+          setAddressForm(prefill);
+          setSelectedAddressId(mostRecent.id);
+        }
+      } catch (err) {
+        console.error("Unable to load saved addresses:", err);
+      } finally {
+        setLoadingSavedAddresses(false);
+      }
+    };
+
+    loadSavedAddresses();
+  }, [user]);
 
   // Modal handlers...
   const handleAddressChange = (e) => {
     const { name, value } = e.target;
     setAddressForm((prev) => ({ ...prev, [name]: value }));
+    setAddressChanged(true);
+    setSelectedAddressId(""); // manual edits no longer match a saved address
+  };
+  const handleSelectSavedAddress = (id) => {
+    setSelectedAddressId(id);
+    if (!id) return; // "Enter a new address" chosen — leave form as-is
+
+    const addr = savedAddresses.find((a) => a.id === id);
+    if (!addr) return;
+
+    setAddressForm((prev) => ({
+      ...prev,
+      name: addr.name || "",
+      phone: addr.phone || "",
+      address: addr.address || "",
+      busStop: addr.busStop || "",
+      landmark: addr.landmark || "",
+    }));
     setAddressChanged(true);
   };
   const saveNewAddress = () => {
@@ -136,7 +204,7 @@ const Checkout = () => {
   };
   const handlePickupStation = (e) => {
     const selected = PICKUP_STATIONS.find(
-      (station) => station.name === e.target.value
+      (station) => station.name === e.target.value,
     );
     setPickupStation(selected ? selected.name : "");
     setPickupFee(selected ? selected.fee : 0);
@@ -171,7 +239,7 @@ const Checkout = () => {
   };
   // Find the station by name (bus stop)
   const selectedBusStop = PICKUP_STATIONS.find(
-    (station) => station.name === userInfo.busStop
+    (station) => station.name === userInfo.busStop,
   );
 
   const currentDeliveryFee =
@@ -180,70 +248,70 @@ const Checkout = () => {
         ? pickupFee
         : 0
       : deliveryType === "door"
-      ? selectedBusStop
-        ? selectedBusStop.fee + 500 // ADD ₦500 for door delivery
-        : 0
-      : 0;
+        ? selectedBusStop
+          ? selectedBusStop.fee + 500 // ADD ₦500 for door delivery
+          : 0
+        : 0;
 
   // paystack integration
   const publicKey = import.meta.env.VITE_PAYSTACK_PUBLIC;
 
-   // replace with your key
+  // replace with your key
   const amountInKobo = (totalPrice + currentDeliveryFee - promo) * 100;
   const email = user?.email;
   const name = userInfo.name;
   const phone = userInfo.phone;
 
   const paystackProps = {
-     email, // required
-  amount: Math.max(amountInKobo, 100), // required
-  publicKey, // required
-  text: "Pay Now with Paystack",
+    email, // required
+    amount: Math.max(amountInKobo, 100), // required
+    publicKey, // required
+    text: "Pay Now with Paystack",
 
-  metadata: {
-    custom_fields: [
-      {
-        display_name: "Full Name",
-        variable_name: "full_name",
-        value: userInfo.name, // ✅ your full name here
-      },
-      {
-        display_name: "Phone Number",
-        variable_name: "phone",
-        value: userInfo.phone,
-      },
-      {
-        display_name: "Address",
-        variable_name: "address",
-        value: userInfo.address,
-      },
-      {
-        display_name: "Landmark",
-        variable_name: "landmark",
-        value: userInfo.landmark,
-      },
-      {
-        display_name: "Bus Stop",
-        variable_name: "bus_stop",
-        value: userInfo.busStop,
-      },
-      {
-        display_name: "Delivery Type",
-        variable_name: "delivery_type",
-        value: deliveryType,
-      },
-      {
-        display_name: "Pickup Station",
-        variable_name: "pickup_station",
-        value: pickupStation,
-      },
-      {
-        display_name: "Promo",
-        variable_name: "promo",
-        value: promo,
-      },
-    ],
-  },
+    metadata: {
+      custom_fields: [
+        {
+          display_name: "Full Name",
+          variable_name: "full_name",
+          value: userInfo.name, // ✅ your full name here
+        },
+        {
+          display_name: "Phone Number",
+          variable_name: "phone",
+          value: userInfo.phone,
+        },
+        {
+          display_name: "Address",
+          variable_name: "address",
+          value: userInfo.address,
+        },
+        {
+          display_name: "Landmark",
+          variable_name: "landmark",
+          value: userInfo.landmark,
+        },
+        {
+          display_name: "Bus Stop",
+          variable_name: "bus_stop",
+          value: userInfo.busStop,
+        },
+        {
+          display_name: "Delivery Type",
+          variable_name: "delivery_type",
+          value: deliveryType,
+        },
+        {
+          display_name: "Pickup Station",
+          variable_name: "pickup_station",
+          value: pickupStation,
+        },
+        {
+          display_name: "Promo",
+          variable_name: "promo",
+          value: promo,
+        },
+      ],
+    },
 
     onSuccess: async (reference) => {
       try {
@@ -257,22 +325,20 @@ const Checkout = () => {
           {
             method: "GET",
             headers: { "Content-Type": "application/json" },
-          }
+          },
         );
         const verifyData = await verifyRes.json();
-        
 
         if (!verifyRes.ok || !verifyData.success) {
           setPaymentStarted(false);
           alert(
-            "Payment could not be verified. Please contact support with your transaction reference."
+            "Payment could not be verified. Please contact support with your transaction reference.",
           );
           return;
         }
 
         // 🔥 Step 2: Create the order in your backend after successful verification
         const data = await handleConfirmOrder();
-        
 
         if (!data || !data.orderId) {
           setPaymentStarted(false);
@@ -304,7 +370,7 @@ const Checkout = () => {
         setPaymentStarted(false);
         console.error("❌ Error while verifying/creating order:", err);
         alert(
-          "Payment succeeded but we couldn't verify or create your order. Please contact support."
+          "Payment succeeded but we couldn't verify or create your order. Please contact support.",
         );
       }
     },
@@ -316,74 +382,76 @@ const Checkout = () => {
     },
   };
 
-const handlePayOnDelivery = async () => {
-  setOrderLoading(true);
-  try {
-    const token = await user.getIdToken(); // Firebase auth token
-    if (!token) {
-      alert("You must be logged in to place an order.");
-      setOrderLoading(false);
-      return;
-    }
+  const handlePayOnDelivery = async () => {
+    setOrderLoading(true);
+    try {
+      const token = await user.getIdToken(); // Firebase auth token
+      if (!token) {
+        alert("You must be logged in to place an order.");
+        setOrderLoading(false);
+        return;
+      }
 
-    const clientOrderId = uuidv4();
+      const clientOrderId = uuidv4();
 
-    const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
-    const response = await fetch(`${API_BASE_URL}/order`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify({
-        cartItems: cartList,
-        total: totalPrice + currentDeliveryFee - promo,
-        address: userInfo.address,
-        name: userInfo.name,
-        phone: userInfo.phone,
-        deliveryType,
-        pickupStation,
-        promo,
-        paymentMethod: "cod",
-        clientOrderId,
-      }),
-    });
-
-    const data = await response.json();
-
-    if (response.ok && data.success) {
-      // ✅ Clear cart
-      dispatch(clearCart());
-      localStorage.removeItem("cartList");
-
-      // ✅ Navigate to success page
-      navigate("/checkout/success", {
-        state: {
+      const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+      const response = await fetch(`${API_BASE_URL}/order`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
           cartItems: cartList,
-          paymentMethod: "cod",
-          orderTotal: (totalPrice + currentDeliveryFee - promo).toLocaleString(),
+          total: totalPrice + currentDeliveryFee - promo,
           address: userInfo.address,
           name: userInfo.name,
           phone: userInfo.phone,
           deliveryType,
           pickupStation,
           promo,
-          orderId: data.orderId,
-        },
+          paymentMethod: "cod",
+          clientOrderId,
+        }),
       });
-    } else {
-      console.error("❌ Backend responded with error:", data);
-      alert(data.error || "Something went wrong, please try again.");
+
+      const data = await response.json();
+
+      if (response.ok && data.success) {
+        // ✅ Clear cart
+        dispatch(clearCart());
+        localStorage.removeItem("cartList");
+
+        // ✅ Navigate to success page
+        navigate("/checkout/success", {
+          state: {
+            cartItems: cartList,
+            paymentMethod: "cod",
+            orderTotal: (
+              totalPrice +
+              currentDeliveryFee -
+              promo
+            ).toLocaleString(),
+            address: userInfo.address,
+            name: userInfo.name,
+            phone: userInfo.phone,
+            deliveryType,
+            pickupStation,
+            promo,
+            orderId: data.orderId,
+          },
+        });
+      } else {
+        console.error("❌ Backend responded with error:", data);
+        alert(data.error || "Something went wrong, please try again.");
+      }
+    } catch (err) {
+      console.error("❌ Error while placing order:", err);
+      alert("Failed to place order. Please try again.");
+    } finally {
+      setOrderLoading(false);
     }
-  } catch (err) {
-    console.error("❌ Error while placing order:", err);
-    alert("Failed to place order. Please try again.");
-  } finally {
-    setOrderLoading(false);
-  }
-};
-
-
+  };
 
   const canConfirmAddress =
     !addressChanged &&
@@ -495,6 +563,34 @@ const handlePayOnDelivery = async () => {
         </Modal.Header>
         <Modal.Body>
           <Form>
+            {loadingSavedAddresses ? (
+              <div className="text-muted small mb-3">
+                Loading your saved addresses...
+              </div>
+            ) : (
+              savedAddresses.length > 0 && (
+                <Form.Group className="mb-3">
+                  <Form.Label>Use a saved address</Form.Label>
+                  <Form.Select
+                    value={selectedAddressId}
+                    onChange={(e) => handleSelectSavedAddress(e.target.value)}
+                  >
+                    <option value="">-- Enter a new address --</option>
+                    {savedAddresses.map((addr) => (
+                      <option key={addr.id} value={addr.id}>
+                        {addr.name} — {addr.address}
+                        {addr.city ? `, ${addr.city}` : ""}
+                      </option>
+                    ))}
+                  </Form.Select>
+                  <Form.Text className="text-muted">
+                    Picking a saved address fills in all the fields below — feel
+                    free to adjust anything before saving.
+                  </Form.Text>
+                </Form.Group>
+              )
+            )}
+
             <Form.Group className="mb-2">
               <Form.Label>Full Name</Form.Label>
               <Form.Control
@@ -945,10 +1041,10 @@ const handlePayOnDelivery = async () => {
                         ? "Free"
                         : `₦${pickupFee}`
                       : deliveryType === "door"
-                      ? selectedBusStop
-                        ? `₦${selectedBusStop.fee + 500}`
-                        : "--"
-                      : "--"}
+                        ? selectedBusStop
+                          ? `₦${selectedBusStop.fee + 500}`
+                          : "--"
+                        : "--"}
                   </span>
                 </div>
                 <div
@@ -997,26 +1093,26 @@ const handlePayOnDelivery = async () => {
                     Pay Now with Paystack
                   </PaystackButton>
                 )}
-{paymentMethod === "cod" && (
-  <Button
-    className="checkout-btn w-100"
-    variant="warning"
-    style={{
-      marginTop: 10,
-      backgroundColor: "#ffbb00",
-      color: "#1a1a1a",
-      padding: "10px 16px",
-      border: "none",
-      borderRadius: "6px",
-      fontSize: "1rem",
-      cursor: "pointer",
-    }}
-    onClick={handlePayOnDelivery}
-    disabled={orderLoading}
-  >
-    Place Order (Pay on Delivery)
-  </Button>
-)}
+                {paymentMethod === "cod" && (
+                  <Button
+                    className="checkout-btn w-100"
+                    variant="warning"
+                    style={{
+                      marginTop: 10,
+                      backgroundColor: "#ffbb00",
+                      color: "#1a1a1a",
+                      padding: "10px 16px",
+                      border: "none",
+                      borderRadius: "6px",
+                      fontSize: "1rem",
+                      cursor: "pointer",
+                    }}
+                    onClick={handlePayOnDelivery}
+                    disabled={orderLoading}
+                  >
+                    Place Order (Pay on Delivery)
+                  </Button>
+                )}
                 <div
                   className="small text-center mt-1 text-muted"
                   style={{ fontSize: ".92rem" }}

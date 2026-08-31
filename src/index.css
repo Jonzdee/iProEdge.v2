@@ -98,11 +98,7 @@ button {
   flex-wrap: wrap-reverse !important;
 }
 
-@media (max-width: 767px) {
-  .filter-bar .row {
-    gap: 20px;
-  }
-}
+
 
 .not-found {
   margin: 40px auto 20px;
