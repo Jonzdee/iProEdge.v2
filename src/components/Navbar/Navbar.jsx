@@ -7,7 +7,7 @@ import { useAuth } from "../../context/AuthContext";
 import { signOut } from "firebase/auth";
 import { auth } from "../../firebase";
 import SignInModal from "../../components/Auth/SignInModel";
-
+import InstallPWA from "../InstallPWA";
 const NavBar = () => {
   const { cartList } = useSelector((state) => state.cart);
   const [expand, setExpand] = useState(false);
@@ -169,21 +169,33 @@ const NavBar = () => {
           <Navbar.Collapse id="basic-navbar-nav">
             <Nav className="justify-content-end flex-grow-1 pe-3">
               <Nav.Item>
-                <Link className="navbar-link" to="/" onClick={handleNavLinkClick}>
+                <Link
+                  className="navbar-link"
+                  to="/"
+                  onClick={handleNavLinkClick}
+                >
                   <span className="nav-link-label">Home</span>
                 </Link>
               </Nav.Item>
               <Nav.Item>
-                <Link className="navbar-link" to="/shop" onClick={handleNavLinkClick}>
+                <Link
+                  className="navbar-link"
+                  to="/shop"
+                  onClick={handleNavLinkClick}
+                >
                   <span className="nav-link-label">Shop</span>
                 </Link>
               </Nav.Item>
               <Nav.Item>
-                <Link className="navbar-link" to="/cart" onClick={handleNavLinkClick}>
+                <Link
+                  className="navbar-link"
+                  to="/cart"
+                  onClick={handleNavLinkClick}
+                >
                   <span className="nav-link-label">Cart</span>
                 </Link>
               </Nav.Item>
-             
+              <InstallPWA />
               <Nav.Item className="expanded-cart d-none d-md-flex align-items-center">
                 {user ? (
                   avatarDropdown

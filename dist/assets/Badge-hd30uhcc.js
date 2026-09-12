@@ -1,0 +1,1 @@
+import{r as i,U as m,j as x,V as l}from"./index-BVKenPga.js";const n=i.forwardRef(({bsPrefix:r,bg:s="primary",pill:e=!1,text:a,className:o,as:t="span",...p},d)=>{const f=m(r,"badge");return x.jsx(t,{ref:d,...p,className:l(o,f,e&&"rounded-pill",a&&`text-${a}`,s&&`bg-${s}`)})});n.displayName="Badge";export{n as B};
