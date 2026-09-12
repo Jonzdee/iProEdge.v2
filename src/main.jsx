@@ -4,19 +4,22 @@ import "./index.css";
 import App from "./App";
 
 import { Provider } from "react-redux";
-import  store  from "./app/store";
+import store from "./app/store";
 
-import { AuthProvider } from "./context/AuthContext"; 
+import { AuthProvider } from "./context/AuthContext";
+
+import { registerSW } from "virtual:pwa-register";
+
+registerSW();
 
 const root = ReactDOM.createRoot(document.getElementById("root"));
+
 root.render(
   <React.StrictMode>
     <Provider store={store}>
-      <AuthProvider>          
+      <AuthProvider>
         <App />
       </AuthProvider>
     </Provider>
-  </React.StrictMode>
+  </React.StrictMode>,
 );
-
-
