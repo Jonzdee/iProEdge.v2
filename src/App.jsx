@@ -45,7 +45,7 @@ const AdminLayout = lazy(() => import("./pages/admin/AdminLayout"));
 const AdminOrders = lazy(() => import("./pages/admin/AdminOrders"));
 const AdminUsers = lazy(() => import("./pages/admin/AdminUsers"));
 const AdminWithdrawals = lazy(() => import("./pages/admin/AdminWithdrawals"));
-
+import NotificationSetup from "./components/NotificationSetup";
 function App() {
   return (
     <Suspense
@@ -58,6 +58,7 @@ function App() {
       }
     >
       <Router>
+        <NotificationSetup />
         <IProEdgeHeader />
 
         <ToastContainer
@@ -88,27 +89,27 @@ function App() {
           <Route path="/refer" element={<ReferralPage />} />
 
           {/* Customer Account */}
-<Route path="/account" element={<AccountLayout />}>
-  <Route index element={<Profile />} />
-  <Route path="wishlist" element={<Wishlist />} />
+          <Route path="/account" element={<AccountLayout />}>
+            <Route index element={<Profile />} />
+            <Route path="wishlist" element={<Wishlist />} />
 
-  <Route path="orders" element={<Orders />} />
-  <Route path="orders/details/:id" element={<OrderDetails />} />
-  <Route path="addresses" element={<Addresses />} />
-  <Route path="wallet" element={<Wallet />} />
+            <Route path="orders" element={<Orders />} />
+            <Route path="orders/details/:id" element={<OrderDetails />} />
+            <Route path="addresses" element={<Addresses />} />
+            <Route path="wallet" element={<Wallet />} />
 
-  <Route path="gift-cards" element={<GiftCards />} />
-  <Route path="return-refunds" element={<ReturnsRefunds />} />
-  <Route path="email-newsletter" element={<EmailNewsletter />} />
-  <Route path="support-ticket" element={<SupportTickets />} />
-</Route>
+            <Route path="gift-cards" element={<GiftCards />} />
+            <Route path="return-refunds" element={<ReturnsRefunds />} />
+            <Route path="email-newsletter" element={<EmailNewsletter />} />
+            <Route path="support-ticket" element={<SupportTickets />} />
+          </Route>
 
-{/* Admin */}
-<Route path="/admin" element={<AdminLayout />}>
-  <Route path="orders" element={<AdminOrders />} />
-  <Route path="withdrawals" element={<AdminWithdrawals />} />
-  <Route path="users" element={<AdminUsers />} />
-</Route>
+          {/* Admin */}
+          <Route path="/admin" element={<AdminLayout />}>
+            <Route path="orders" element={<AdminOrders />} />
+            <Route path="withdrawals" element={<AdminWithdrawals />} />
+            <Route path="users" element={<AdminUsers />} />
+          </Route>
         </Routes>
 
         <Footer />
