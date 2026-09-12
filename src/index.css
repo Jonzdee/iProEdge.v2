@@ -382,3 +382,95 @@ button.delete ion-icon {
     color: #d1d7e0;
     cursor: not-allowed !important;
 }
+
+.notification-prompt-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 99999;
+  padding: 20px;
+}
+
+.notification-prompt {
+  position: relative;
+  width: 100%;
+  max-width: 380px;
+  background: #fff;
+  border-radius: 18px;
+  padding: 30px 25px;
+  text-align: center;
+  box-shadow: 0 15px 50px rgba(0, 0, 0, 0.2);
+  animation: notificationPopupUp 0.25s ease;
+}
+
+.notification-prompt-close {
+  position: absolute;
+  top: 12px;
+  right: 15px;
+  border: none;
+  background: transparent;
+  font-size: 25px;
+  color: #777;
+  cursor: pointer;
+}
+
+.notification-prompt-icon {
+  font-size: 42px;
+  margin-bottom: 10px;
+}
+
+.notification-prompt h3 {
+  margin: 0 0 10px;
+  font-size: 21px;
+  font-weight: 700;
+  color: #111;
+}
+
+.notification-prompt p {
+  margin: 0 0 22px;
+  color: #666;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.notification-allow-btn {
+  width: 100%;
+  border: none;
+  background: #000;
+  color: #fff;
+  padding: 13px 20px;
+  border-radius: 8px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.notification-allow-btn:hover {
+  opacity: 0.85;
+}
+
+.notification-later-btn {
+  width: 100%;
+  border: none;
+  background: transparent;
+  color: #666;
+  padding: 12px;
+  margin-top: 5px;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+@keyframes notificationPopupUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
