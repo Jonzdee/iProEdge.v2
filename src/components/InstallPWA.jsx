@@ -1,11 +1,21 @@
 import { useEffect, useState } from "react";
-
+import logo from "../../public/logo.jpg";
 const InstallPWA = () => {
   const [installPrompt, setInstallPrompt] = useState(null);
   const [isInstalled, setIsInstalled] = useState(false);
   const [showPopup, setShowPopup] = useState(false);
   const [isIOS, setIsIOS] = useState(false);
 
+
+  const INSTALL_DISMISSED_KEY = "iproedge-install-dismissed";
+
+const hasDismissedInstall = () => {
+  return localStorage.getItem(INSTALL_DISMISSED_KEY) === "true";
+};
+
+const rememberDismissal = () => {
+  localStorage.setItem(INSTALL_DISMISSED_KEY, "true");
+};
   useEffect(() => {
     // Detect iPhone / iPad
     const iosDevice =
@@ -34,7 +44,9 @@ const InstallPWA = () => {
       // Only automatically show popup on mobile
       if (window.innerWidth <= 767) {
         setTimeout(() => {
-          setShowPopup(true);
+          if (!hasDismissedInstall()) {
+            setShowPopup(true);
+          }
         }, 3000);
       }
     };
@@ -92,6 +104,7 @@ const InstallPWA = () => {
 
   const handleClosePopup = () => {
     setShowPopup(false);
+    rememberDismissal();
   };
 
   // Already installed
@@ -124,7 +137,9 @@ const InstallPWA = () => {
               ×
             </button>
 
-            <div className="install-pwa-icon">📱</div>
+            <div className="install-pwa-icon">
+              <img src={logo} alt="iProEdge Logo" />
+            </div>
 
             <h3>Install iProEdge</h3>
 
