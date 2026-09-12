@@ -11,9 +11,10 @@ export default defineConfig({
       registerType: "autoUpdate",
 
       manifest: {
+        id: "/",
         name: "iProEdge",
         short_name: "iProEdge",
-        description: "Shop phones, tablets and electronics from iProEdge",
+        description: "Shop phones, tablets and electronics from iproedge",
         theme_color: "#000000",
         background_color: "#ffffff",
         display: "standalone",
@@ -35,7 +36,22 @@ export default defineConfig({
             src: "/pwa-512x512.png",
             sizes: "512x512",
             type: "image/png",
-            purpose: "any maskable",
+           
+          },
+        ],
+
+        screenshots: [
+          {
+            src: "/pwa-mobile.png",
+            sizes: "370x823",
+            type: "image/png",
+            form_factor: "narrow",
+          },
+          {
+            src: "/pwa-desktop.png",
+            sizes: "1162x952",
+            type: "image/png",
+            form_factor: "wide",
           },
         ],
       },
