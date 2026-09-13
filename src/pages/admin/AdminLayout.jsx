@@ -6,6 +6,9 @@ import { useAuth } from "../../context/AuthContext";
 
 const AdminLayout = () => {
   const { user } = useAuth();
+
+  console.log("ADMIN CHECK USER:", user);
+  
   const location = useLocation();
 
   const [checking, setChecking] = useState(true);
