@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Outlet, Navigate, Link, useLocation } from "react-router-dom";
 import { Spinner, Nav } from "react-bootstrap";
-import { FaBoxOpen, FaWallet, FaUsers } from "react-icons/fa";
+import { FaBoxOpen, FaWallet, FaUsers, FaBell } from "react-icons/fa";
 import { useAuth } from "../../context/AuthContext";
 
 const AdminLayout = () => {
@@ -13,16 +13,17 @@ const AdminLayout = () => {
 
   useEffect(() => {
     const checkAdmin = async () => {
+     
       if (!user) {
         setChecking(false);
         return;
       }
 
       try {
-        // forceRefresh so a just-granted claim takes effect
-        // without needing a manual logout/login.
-        const tokenResult = await user.getIdTokenResult(true);
-        setIsAdmin(!!tokenResult.claims.admin);
+       const tokenResult = await user.getIdTokenResult(true);
+     const adminEmail = "ogunyankinjohnson@gmail.com";
+
+       setIsAdmin(!!tokenResult.claims.admin || user.email === adminEmail);
       } catch (err) {
         console.error("Admin check failed:", err);
         setIsAdmin(false);
@@ -46,11 +47,12 @@ const AdminLayout = () => {
     return <Navigate to="/" replace />;
   }
 
-  const navItems = [
-    { to: "/admin/orders", label: "Orders", icon: <FaBoxOpen /> },
-    { to: "/admin/withdrawals", label: "Withdrawals", icon: <FaWallet /> },
-    { to: "/admin/users", label: "Users", icon: <FaUsers /> },
-  ];
+ const navItems = [
+   { to: "/admin/orders", label: "Orders", icon: <FaBoxOpen /> },
+   { to: "/admin/notifications", label: "Notifications", icon: <FaBell /> },
+   { to: "/admin/withdrawals", label: "Withdrawals", icon: <FaWallet /> },
+   { to: "/admin/users", label: "Users", icon: <FaUsers /> },
+ ];
 
   return (
     <div className="d-flex" style={{ minHeight: "100vh" }}>

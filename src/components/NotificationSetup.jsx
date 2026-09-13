@@ -8,73 +8,39 @@ function NotificationSetup() {
   const { user } = useAuth();
   const [showPrompt, setShowPrompt] = useState(false);
 
-  useEffect(() => {
-    // Browser doesn't support notifications
-    if (!("Notification" in window)) {
-      return;
-    }
-
-    // Customer already made a notification decision
-    if (Notification.permission !== "default") {
-      return;
-    }
-
-
-    const dismissedAt = localStorage.getItem("iproedge_notification_dismissed");
-
-    if (dismissedAt) {
-      const daysSinceDismissed =
-        (Date.now() - Number(dismissedAt)) / (1000 * 60 * 60 * 24);
-
-      // Wait 7 days before showing the popup again
-      if (daysSinceDismissed < 7) {
-        return;
-      }
-    }
-    // Wait 3 seconds before showing our popup
-    const timer = setTimeout(() => {
-      setShowPrompt(true);
-    }, 3000);
-
-    return () => clearTimeout(timer);
-  }, []);
-
-  useEffect(() => {
-    const unsubscribe = listenForMessages((payload) => {
-      console.log("New iProEdge notification:", payload);
-    });
-
-    return () => {
-      unsubscribe();
-    };
-  }, []);
-
-  const handleAllowNotifications = async () => {
-    setShowPrompt(false);
-
-    const token = await requestNotificationPermission();
-
+  // ==========================================
+  // SAVE FCM TOKEN
+  // ==========================================
+  const saveNotificationToken = async (token) => {
     if (!token) {
+      console.log("No FCM token available.");
       return;
     }
 
     try {
+      // ========================================
+      // LOGGED-IN USER
+      // ========================================
       if (user) {
-        // Logged-in customer
         await setDoc(
-          doc(db, "users", user.uid),
+          doc(db, "users", user.uid, "notificationTokens", token),
           {
             fcmToken: token,
             notificationsEnabled: true,
+            createdAt: new Date(),
           },
           {
             merge: true,
           },
         );
 
-        console.log("FCM token saved to customer account");
-      } else {
-        // Guest customer
+        console.log("FCM token saved to logged-in customer device");
+      }
+
+      // ========================================
+      // GUEST USER
+      // ========================================
+      else {
         await setDoc(
           doc(db, "notificationTokens", token),
           {
@@ -94,19 +60,118 @@ function NotificationSetup() {
     }
   };
 
-const handleNotNow = () => {
-  setShowPrompt(false);
+  // ==========================================
+  // CHECK / REGISTER NOTIFICATIONS
+  // ==========================================
+  useEffect(() => {
+    const setupNotifications = async () => {
+      if (!("Notification" in window)) {
+        console.log("This browser does not support notifications.");
+        return;
+      }
 
-  localStorage.setItem(
-    "iproedge_notification_dismissed",
-    Date.now().toString(),
-  );
-};
+      // ----------------------------------------
+      // Permission already granted
+      // ----------------------------------------
+      if (Notification.permission === "granted") {
+        console.log("Notification permission already granted.");
 
+        const token = await requestNotificationPermission();
+
+        if (token) {
+          await saveNotificationToken(token);
+        }
+
+        return;
+      }
+
+      // ----------------------------------------
+      // Permission already denied
+      // ----------------------------------------
+      if (Notification.permission === "denied") {
+        console.log("Notification permission is denied.");
+        return;
+      }
+
+      // ----------------------------------------
+      // Permission is still default
+      // ----------------------------------------
+      if (Notification.permission === "default") {
+        const dismissedAt = localStorage.getItem(
+          "iproedge_notification_dismissed",
+        );
+
+        if (dismissedAt) {
+          const daysSinceDismissed =
+            (Date.now() - Number(dismissedAt)) / (1000 * 60 * 60 * 24);
+
+          if (daysSinceDismissed < 7) {
+            return;
+          }
+        }
+
+        const timer = setTimeout(() => {
+          setShowPrompt(true);
+        }, 3000);
+
+        return () => clearTimeout(timer);
+      }
+    };
+
+    setupNotifications();
+  }, [user]);
+
+  // ==========================================
+  // FOREGROUND NOTIFICATIONS
+  // ==========================================
+  useEffect(() => {
+    const unsubscribe = listenForMessages((payload) => {
+      console.log("New iProEdge notification:", payload);
+    });
+
+    return () => {
+      unsubscribe();
+    };
+  }, []);
+
+  // ==========================================
+  // ALLOW NOTIFICATIONS BUTTON
+  // ==========================================
+  const handleAllowNotifications = async () => {
+    setShowPrompt(false);
+
+    const token = await requestNotificationPermission();
+
+    if (!token) {
+      console.log("Notification permission/token failed.");
+      return;
+    }
+
+    await saveNotificationToken(token);
+  };
+
+  // ==========================================
+  // NOT NOW BUTTON
+  // ==========================================
+  const handleNotNow = () => {
+    setShowPrompt(false);
+
+    localStorage.setItem(
+      "iproedge_notification_dismissed",
+      Date.now().toString(),
+    );
+  };
+
+  // ==========================================
+  // DON'T SHOW PROMPT
+  // ==========================================
   if (!showPrompt) {
     return null;
   }
 
+  // ==========================================
+  // NOTIFICATION PROMPT
+  // ==========================================
   return (
     <div className="notification-prompt-overlay">
       <div className="notification-prompt">

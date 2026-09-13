@@ -45,6 +45,9 @@ const AdminLayout = lazy(() => import("./pages/admin/AdminLayout"));
 const AdminOrders = lazy(() => import("./pages/admin/AdminOrders"));
 const AdminUsers = lazy(() => import("./pages/admin/AdminUsers"));
 const AdminWithdrawals = lazy(() => import("./pages/admin/AdminWithdrawals"));
+const AdminNotifications = lazy(
+  () => import("./pages/admin/AdminNotifications"),
+);
 import NotificationSetup from "./components/NotificationSetup";
 function App() {
   return (
@@ -107,6 +110,7 @@ function App() {
           {/* Admin */}
           <Route path="/admin" element={<AdminLayout />}>
             <Route path="orders" element={<AdminOrders />} />
+            <Route path="notifications" element={<AdminNotifications />} />
             <Route path="withdrawals" element={<AdminWithdrawals />} />
             <Route path="users" element={<AdminUsers />} />
           </Route>

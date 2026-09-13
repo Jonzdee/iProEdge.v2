@@ -39,8 +39,46 @@ export const requestNotificationPermission = async () => {
 };
 
 export const listenForMessages = (callback) => {
-    return onMessage(messaging, (payload) => {
+    return onMessage(messaging, async (payload) => {
         console.log("Foreground notification:", payload);
+
+        const title =
+            payload.notification?.title || "iProEdge";
+
+        const body =
+            payload.notification?.body ||
+            "You have a new notification from iProEdge.";
+
+        try {
+            const registration =
+                await navigator.serviceWorker.register(
+                    "/firebase-messaging-sw.js",
+                    {
+                        scope:
+                            "/firebase-cloud-messaging-push-scope/",
+                    }
+                );
+
+            console.log(
+                "Firebase Messaging SW ready:",
+                registration.active?.scriptURL
+            );
+
+            if (Notification.permission === "granted") {
+                await registration.showNotification(title, {
+                    body,
+                    icon: "/pwa-192x192.png",
+                    badge: "/pwa-192x192.png",
+                });
+
+                console.log("OS notification displayed");
+            }
+        } catch (error) {
+            console.error(
+                "Failed to display foreground notification:",
+                error
+            );
+        }
 
         if (callback) {
             callback(payload);
